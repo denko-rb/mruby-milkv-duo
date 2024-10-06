@@ -11,13 +11,13 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
 ## Build Instructions
 - Unless running Ubuntu, set up a virtual machine with Ubuntu 24.04, then install:
 
-```
+```console
 sudo apt install wget git make gcc
 ```
 
 - Clone mruby and duo-sdk, then enter the mruby directory:
 
-```
+```console
 git clone https://github.com/mruby/mruby
 git clone https://github.com/milkv-duo/duo-sdk
 cd mruby
