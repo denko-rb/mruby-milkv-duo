@@ -3,8 +3,9 @@ include WiringX
 wiringx_setup
 
 PIN = 15
-
+raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0
 pin_mode(PIN, PINMODE_INPUT)
+
 old_state = digital_read(PIN)
 old_state = old_state ^ 0b1
 

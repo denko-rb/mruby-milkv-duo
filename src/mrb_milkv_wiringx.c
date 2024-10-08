@@ -50,6 +50,39 @@ mrbWX_digital_read(mrb_state* mrb, mrb_value self) {
   return mrb_fixnum_value(state);
 }
 
+// PWM
+static mrb_value
+mrbWX_pwm_enable(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, enabled;
+  mrb_get_args(mrb, "ii", &pin, &enabled);
+  wiringXPWMEnable(pin, enabled);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrbWX_pwm_set_polarity(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, polarity;
+  mrb_get_args(mrb, "ii", &pin, &polarity);
+  wiringXPWMSetPolarity(pin, polarity);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrbWX_pwm_set_period(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, period;
+  mrb_get_args(mrb, "ii", &pin, &period);
+  wiringXPWMSetPeriod(pin, period);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrbWX_pwm_set_duty(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, duty;
+  mrb_get_args(mrb, "ii", &pin, &duty);
+  wiringXPWMSetDuty(pin, duty);
+  return mrb_nil_value();
+}
+
 void
 mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   // Module
@@ -73,6 +106,12 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "pin_mode",       mrbWX_pin_mode,       MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "digital_write",  mrbWX_digital_write,  MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "digital_read",   mrbWX_digital_read,   MRB_ARGS_REQ(1));
+
+  // PWM
+  mrb_define_method(mrb, mrbWX, "pwm_enable",       mrbWX_pwm_enable,       MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "pwm_set_polarity", mrbWX_pwm_set_polarity, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "pwm_set_period",   mrbWX_pwm_set_period,   MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "pwm_set_duty",     mrbWX_pwm_set_duty,     MRB_ARGS_REQ(2));
 }
 
 void
