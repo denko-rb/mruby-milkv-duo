@@ -7,7 +7,9 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
 - Pin Mode
 - Digital Write
 - Digital Read
-- PWM Write (appears to work only on GPIO2 for Duo 256M)
+- PWM Write
+
+**Note:** Use `duo-pinmux` to enable alternate functions (PWM/I2C/SPI etc.) on specific pins BEFORE they are used in mruby. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 
 ## Build Instructions
 - Unless running Ubuntu, set up a virtual machine with Ubuntu 24.04, then install:
