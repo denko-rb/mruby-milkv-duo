@@ -3,7 +3,7 @@
 #include <wiringx.h>
 
 // Set MILKV_DUO_VARIANT in mruby build config.
-// Prep isn't treating strings in -D flags as strings, so do this nonsense.
+// Precompiler isn't treating strings in -D flags as strings, so do this nonsense.
 #define _milkv_duo      "milkv_duo"
 #define _milkv_duo256m  "milkv_duo256m"
 #define _milkv_duos     "milkv_duos"
@@ -99,7 +99,8 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_const(mrb, mrbWX, "HIGH",              mrb_fixnum_value(HIGH));
 
   // Class Methods
-  mrb_define_method(mrb, mrbWX, "wiringx_setup",  mrbWX_setup,          MRB_ARGS_REQ(0));
+  mrbWX_setup(mrb, mrb_nil_value()); // Save user from calling WiringX.setup each script.
+  mrb_define_method(mrb, mrbWX, "setup",          mrbWX_setup,          MRB_ARGS_REQ(0));
   mrb_define_method(mrb, mrbWX, "valid_gpio",     mrbWX_valid_gpio,     MRB_ARGS_REQ(1));
 
   // Digital I/O

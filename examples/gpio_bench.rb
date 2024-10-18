@@ -1,6 +1,5 @@
-# Call WiringX.wiringx_setup before all GPIO access.
+# Top-level include WiringX, to call its class methods directly.
 include WiringX
-wiringx_setup
 
 TOGGLES = 1_000_000
 

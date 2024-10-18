@@ -1,6 +1,5 @@
-# Call WiringX.wiringx_setup before all GPIO access.
+# Top-level include WiringX, to call its class methods directly.
 include WiringX
-wiringx_setup
 
 PIN = 15
 raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0

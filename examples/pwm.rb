@@ -1,6 +1,5 @@
-# Call WiringX.wiringx_setup before all GPIO access.
+# Top-level include WiringX, to call its class methods directly.
 include WiringX
-wiringx_setup
 
 # Connect external LED to GPIO2
 PIN = 2
