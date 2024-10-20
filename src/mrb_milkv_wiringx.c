@@ -152,6 +152,52 @@ mrbWX_i2c_read(mrb_state* mrb, mrb_value self) {
 }
 
 /****************************************************************************/
+/*                                   SPI                                    */
+/****************************************************************************/
+static mrb_value
+mrbWX_spi_setup(mrb_state* mrb, mrb_value self) {
+  // Args are Linux SPI dev index, and clock speed.
+  mrb_int index, speed;
+  mrb_get_args(mrb, "ii", &index, &speed);
+
+  // Setup and return the file descriptor to mruby.
+  int fd = wiringXSPISetup(index, speed);
+  return mrb_fixnum_value(fd);
+}
+
+static mrb_value
+mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
+  // Args are SPI index, array of bytes to write, length of bytes to read.
+  mrb_int index, rxLength;
+  mrb_value txArray;
+  mrb_get_args(mrb, "iAi", &index, &txArray, &rxLength);
+
+  // Reading more than writing, or writing more than reading?
+  mrb_int txLength = RARRAY_LEN(txArray);
+  int length = (rxLength > txLength) ? rxLength : txLength;
+  uint8_t rwBuf[length+1];
+
+  // Copy bytes from txArray into rwBuffer.
+  for (int i=0; i<txLength; i++) {
+    mrb_value elem = mrb_ary_ref(mrb, txArray, i);
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "SPI data bytes can only be integers");
+    rwBuf[i] = mrb_integer(elem);
+  }
+  // Extend with 0s if needed.
+  if (length > txLength) {
+    for(int i=txLength; i<length; i++) rwBuf[i] = 0;
+  }
+
+  // Do the transfer.
+  wiringXSPIDataRW(index, rwBuf, length);
+
+  // Convert read bytes to mrb_ary and return.
+  mrb_value rxArray = mrb_ary_new_capa(mrb, rxLength);
+  for (int i=0; i<rxLength; i++) mrb_ary_push(mrb, rxArray, mrb_fixnum_value(rwBuf[i]));
+  return rxArray;
+}
+
+/****************************************************************************/
 /*                               GEM INIT                                   */
 /****************************************************************************/
 void
@@ -189,6 +235,10 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "i2c_setup",        mrbWX_i2c_setup,        MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "i2c_write",        mrbWX_i2c_write,        MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "i2c_read",         mrbWX_i2c_read,         MRB_ARGS_REQ(2));
+
+  // SPI
+  mrb_define_method(mrb, mrbWX, "spi_setup",        mrbWX_spi_setup,        MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
 }
 
 void
