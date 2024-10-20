@@ -1,17 +1,23 @@
 # mruby-milkv-wiringx
 
-**WARNING: INCOMPLETE AND EXPERIMENTAL**
+This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board computers. It uses the wiringX C library (from the Milk-V SDK) to provide GPIO functionality in mruby. Instead of directly mapping the WiringX functions, it aims to provide an interface similar to [lgpio](https://github.com/denko-rb/lgpio) for CRuby on Linux.
 
-This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board computers. It uses the wiringX C library (from the Milk-V SDK) to provide GPIO functionality in mruby. So far, **only** these features have been implemented:
+## Features
 
-- Pin Mode
-- Digital Write
-- Digital Read
-- PWM Write
-- Hardware I2C, but simplified:
+- [x] GPIO Mode/Read/Write
+- [ ] GPIO Alerts
+- [x] PWM Output
+- [x] Hardware I2C, but simplified:
   - `.i2c_setup` works just like the corresponding C function
   - `.i2c_write` doesn't match any C function. Raw write of any length byte array.
   - `.i2c_read` doesn't match any C function. Raw read of any length byte array.
+- [x] Hardware SPI
+  - Main method is `.spi_xfer` instead of expected `.spi_data_rw`, matching the `lgpio` CRuby gem.
+- [ ] WS2812 addressable LEDs over Hardware SPI
+- [ ] Bit Bang I2C
+- [ ] Bit Bang SPI
+- [ ] Bit Bang 1-Wire
+
 
 **Note:** Use `duo-pinmux` to enable alternate functions (PWM/I2C/SPI etc.) on specific pins BEFORE they are used in mruby. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 
