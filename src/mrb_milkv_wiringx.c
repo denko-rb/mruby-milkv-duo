@@ -116,7 +116,7 @@ mrbWX_i2c_setup(mrb_state* mrb, mrb_value self) {
 
 static mrb_value
 mrbWX_i2c_write(mrb_state* mrb, mrb_value self) {
-  // Args are I2C file descriptor from i2c_setup, and array of bytes to send.
+  // Args are I2C file descriptor, and array of bytes to send.
   mrb_int fd;
   mrb_value txArray;
   mrb_get_args(mrb, "iA", &fd, &txArray);
