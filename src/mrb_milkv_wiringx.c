@@ -1,4 +1,12 @@
+#include <fcntl.h>
+#include <linux/i2c-dev.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdint.h>
+
 #include <mruby.h>
+#include <mruby/array.h>
 #include <mruby/value.h>
 #include <wiringx.h>
 
@@ -18,6 +26,9 @@ mrbWX_setup(mrb_state* mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
+/****************************************************************************/
+/*                                 GPIO                                     */
+/****************************************************************************/
 static mrb_value
 mrbWX_valid_gpio(mrb_state* mrb, mrb_value self) {
   mrb_int pin, valid;
@@ -50,7 +61,9 @@ mrbWX_digital_read(mrb_state* mrb, mrb_value self) {
   return mrb_fixnum_value(state);
 }
 
-// PWM
+/****************************************************************************/
+/*                                   PWM                                    */
+/****************************************************************************/
 static mrb_value
 mrbWX_pwm_enable(mrb_state* mrb, mrb_value self) {
   mrb_int pin, enabled;
@@ -83,6 +96,64 @@ mrbWX_pwm_set_duty(mrb_state* mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
+/****************************************************************************/
+/*                                   I2C                                    */
+/****************************************************************************/
+static mrb_value
+mrbWX_i2c_setup(mrb_state* mrb, mrb_value self) {
+  // Args are Linux I2C dev index, and peripheral I2C address.
+  mrb_int index, address;
+  mrb_get_args(mrb, "ii", &index, &address);
+
+  // Full I2C dev path.
+  char i2c_dev[12];
+  snprintf(i2c_dev, sizeof(i2c_dev), "/dev/i2c-%d", index);
+
+  // Setup and return the file descriptor to mruby.
+  int fd = wiringXI2CSetup(i2c_dev, address);
+  return mrb_fixnum_value(fd);
+}
+
+static mrb_value
+mrbWX_i2c_write(mrb_state* mrb, mrb_value self) {
+  // Args are I2C file descriptor from i2c_setup, and array of bytes to send.
+  mrb_int fd;
+  mrb_value txArray;
+  mrb_get_args(mrb, "iA", &fd, &txArray);
+
+  // Copy mrb array txArray into C array txBuf.
+  mrb_int length = RARRAY_LEN(txArray);
+  uint8_t txBuf[length];
+  for (int i=0; i<length; i++) {
+    mrb_value elem = mrb_ary_ref(mrb, txArray, i);
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "I2C data bytes can only be integers");
+    txBuf[i] = mrb_integer(elem);
+  }
+
+  // Raw I2C write, returning number of bytes written.
+  int result = write(fd, txBuf, sizeof(txBuf));
+  return mrb_fixnum_value(result);
+}
+
+static mrb_value
+mrbWX_i2c_read(mrb_state* mrb, mrb_value self) {
+  // Args are I2C file descriptor, and number of bytes to read.
+  mrb_int fd, length;
+  mrb_get_args(mrb, "ii", &fd, &length);
+
+  // Raw I2C read length bytes into C array.
+  uint8_t rxBuf[length];
+  read(fd, rxBuf, length);
+
+  // Convert to mrb_ary and return.
+  mrb_value rxArray = mrb_ary_new_capa(mrb, length);
+  for (int i=0; i<length; i++) mrb_ary_push(mrb, rxArray, mrb_fixnum_value(rxBuf[i]));
+  return rxArray;
+}
+
+/****************************************************************************/
+/*                               GEM INIT                                   */
+/****************************************************************************/
 void
 mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   // Module
@@ -113,6 +184,11 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "pwm_set_polarity", mrbWX_pwm_set_polarity, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "pwm_set_period",   mrbWX_pwm_set_period,   MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "pwm_set_duty",     mrbWX_pwm_set_duty,     MRB_ARGS_REQ(2));
+
+  // I2C
+  mrb_define_method(mrb, mrbWX, "i2c_setup",        mrbWX_i2c_setup,        MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "i2c_write",        mrbWX_i2c_write,        MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "i2c_read",         mrbWX_i2c_read,         MRB_ARGS_REQ(2));
 }
 
 void

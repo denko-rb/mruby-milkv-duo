@@ -8,6 +8,10 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
 - Digital Write
 - Digital Read
 - PWM Write
+- Hardware I2C, but simplified:
+  - `.i2c_setup` works just like the corresponding C function
+  - `.i2c_write` doesn't match any C function. Raw write of any length byte array.
+  - `.i2c_read` doesn't match any C function. Raw read of any length byte array.
 
 **Note:** Use `duo-pinmux` to enable alternate functions (PWM/I2C/SPI etc.) on specific pins BEFORE they are used in mruby. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 
