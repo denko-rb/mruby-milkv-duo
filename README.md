@@ -13,7 +13,7 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
   - `.i2c_read` doesn't match any C function. Raw read of any length byte array.
 - [x] Hardware SPI
   - Main method is `.spi_xfer` instead of expected `.spi_data_rw`, matching the `lgpio` CRuby gem.
-- [ ] WS2812 addressable LEDs over Hardware SPI
+- [x] WS2812 addressable LEDs over Hardware SPI
 - [ ] Bit Bang I2C
 - [ ] Bit Bang SPI
 - [ ] Bit Bang 1-Wire

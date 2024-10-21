@@ -197,6 +197,46 @@ mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
   return rxArray;
 }
 
+static mrb_value
+mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
+  // Args are SPI index, and array of pixels to write.
+  mrb_int index;
+  mrb_value pixelArray;
+  mrb_get_args(mrb, "iA", &index, &pixelArray);
+
+  int count = RARRAY_LEN(pixelArray);
+  int zeroesBefore = 1;  // 1/4 of lgpio rounded up, since uint32 instead of uint8.
+  int zeroesAfter  = 23; // 1/4 of lgpio rounded up, since uint32 instead of uint8.
+  int txBufLength  = zeroesBefore + count + zeroesAfter; // Don't 3x count, since 1:1 mapping of uint8 to uint32.
+  uint32_t txBuf[txBufLength];
+  for (int i=0; i<txBufLength; i++) { txBuf[i] = 0; }
+
+  mrb_value mrb_currentByte;
+  uint8_t   currentByte;
+  uint8_t   currentBit;
+  uint32_t  temp;
+
+  for (int i=0; i<count; i++){
+    mrb_currentByte = mrb_ary_ref(mrb, pixelArray, i);
+    if (!mrb_integer_p(mrb_currentByte)) mrb_raise(mrb, E_TYPE_ERROR, "WS2812 data bytes can only be integers");
+    currentByte = mrb_integer(mrb_currentByte);
+
+    // 4 SPI bits per data bit, instead of 3 like other implementations.
+    // The extra 0 holds the line low a bit longer, which is fine.
+    // Needed because either aligned memory access, or SPI clock not 100% consistent. Not sure which.
+    temp = 0;
+    for (int j=0; j<8; j++) {
+      currentBit  = (currentByte & (1 << j));
+      temp = temp << 4;
+      temp = (currentBit == 0) ? (temp | 0b100) : (temp | 0b110);
+    }
+    txBuf[i+zeroesBefore] = temp;
+  }
+
+  int result = wiringXSPIDataRW(index, (uint8_t *)txBuf, sizeof(txBuf));
+  return mrb_fixnum_value(result);
+}
+
 /****************************************************************************/
 /*                               GEM INIT                                   */
 /****************************************************************************/
@@ -239,6 +279,7 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   // SPI
   mrb_define_method(mrb, mrbWX, "spi_setup",        mrbWX_spi_setup,        MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, mrbWX, "spi_ws2812_write", mrbWX_spi_ws2812_write, MRB_ARGS_REQ(2));
 }
 
 void
