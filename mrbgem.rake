@@ -8,5 +8,6 @@ MRuby::Gem::Specification.new('mruby-milkv-wiringx') do |spec|
   # Include files in the right order.
   spec.rbfiles = [
     "#{dir}/mrblib/version.rb",
+    "#{dir}/mrblib/wiringx/positional_servo.rb",
   ]
 end
