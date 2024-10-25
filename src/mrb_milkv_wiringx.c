@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <time.h>
 
 #include <mruby.h>
 #include <mruby/array.h>
@@ -16,6 +17,46 @@
 #define _milkv_duo256m  "milkv_duo256m"
 #define _milkv_duos     "milkv_duos"
 
+/*****************************************************************************/
+/*                             TIMING HELPERS                                */
+/*****************************************************************************/
+static uint64_t nanoDiff(const struct timespec *event2, const struct timespec *event1) {
+  uint64_t event2_ns = (uint64_t)event2->tv_sec * 1000000000LL + event2->tv_nsec;
+  uint64_t event1_ns = (uint64_t)event1->tv_sec * 1000000000LL + event1->tv_nsec;
+  return event2_ns - event1_ns;
+}
+
+static uint64_t nanosSince(const struct timespec *event) {
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &now);
+  return nanoDiff(&now, event);
+}
+
+static void nanoDelay(uint64_t nanos) {
+  struct timespec refTime;
+  struct timespec now;
+  clock_gettime(CLOCK_MONOTONIC, &refTime);
+  now = refTime;
+  while(nanoDiff(&now, &refTime) < nanos) {
+    clock_gettime(CLOCK_MONOTONIC, &now);
+  }
+}
+
+static void microDelay(uint64_t micros) {
+  nanoDelay(micros * 1000);
+}
+
+static mrb_value
+mrb_microDelay(mrb_state* mrb, mrb_value self) {
+  mrb_int micros;
+  mrb_get_args(mrb, "i", &micros);
+  microDelay(micros);
+  return mrb_nil_value();
+}
+
+/****************************************************************************/
+/*                                 GPIO                                     */
+/****************************************************************************/
 static mrb_value
 mrbWX_setup(mrb_state* mrb, mrb_value self) {
   int result = wiringXSetup(MILKV_DUO_VARIANT, NULL);
@@ -26,9 +67,6 @@ mrbWX_setup(mrb_state* mrb, mrb_value self) {
   return mrb_nil_value();
 }
 
-/****************************************************************************/
-/*                                 GPIO                                     */
-/****************************************************************************/
 static mrb_value
 mrbWX_valid_gpio(mrb_state* mrb, mrb_value self) {
   mrb_int pin, valid;
@@ -94,6 +132,42 @@ mrbWX_pwm_set_duty(mrb_state* mrb, mrb_value self) {
   mrb_get_args(mrb, "ii", &pin, &duty);
   wiringXPWMSetDuty(pin, duty);
   return mrb_nil_value();
+}
+
+static mrb_value
+tx_wave_ook(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, duty;
+  mrb_value txArray;
+  mrb_get_args(mrb, "iiA", &pin, &duty, &txArray);
+  if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "OOK pulses must be given as Array");
+
+  // Copy mrb array txArray into C array nanoPulses.
+  mrb_int length = RARRAY_LEN(txArray);
+  uint64_t nanoPulses[length];
+  for (int i=0; i<length; i++) {
+    mrb_value elem = mrb_ary_ref(mrb, txArray, i);
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each I2C byte must be Integer");
+    // Should validate +ve too?
+    nanoPulses[i] = mrb_integer(elem) * 1000;
+  }
+
+  // Enable before
+  wiringXPWMEnable(pin, 1);
+
+  // Even numbered indices are on, odd numbered off.
+  for (int i=0; i<length; i++) {
+    if (i % 2 == 0) {
+      wiringXPWMSetDuty(pin, duty);
+    } else {
+      wiringXPWMSetDuty(pin, 0);
+    }
+    // Wait for pulse time.
+    nanoDelay(nanoPulses[i]);
+  }
+
+  // Disable after
+  wiringXPWMEnable(pin, 0);
+  return mrb_fixnum_value(length);
 }
 
 /****************************************************************************/
@@ -260,6 +334,7 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
 
   // Class Methods
   mrbWX_setup(mrb, mrb_nil_value()); // Save user from calling WiringX.setup each script.
+  mrb_define_method(mrb, mrbWX, "micro_delay",    mrb_microDelay,       MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrbWX, "setup",          mrbWX_setup,          MRB_ARGS_REQ(0));
   mrb_define_method(mrb, mrbWX, "valid_gpio",     mrbWX_valid_gpio,     MRB_ARGS_REQ(1));
 
@@ -273,6 +348,7 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "pwm_set_polarity", mrbWX_pwm_set_polarity, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "pwm_set_period",   mrbWX_pwm_set_period,   MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "pwm_set_duty",     mrbWX_pwm_set_duty,     MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "tx_wave_ook",      tx_wave_ook,            MRB_ARGS_REQ(3));
 
   // I2C
   mrb_define_method(mrb, mrbWX, "i2c_setup",        mrbWX_i2c_setup,        MRB_ARGS_REQ(2));

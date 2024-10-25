@@ -1,16 +1,11 @@
 module WiringX
-  class PositionalServo
+  class PositionalServo < HardwarePWM
     FREQUENCY = 50
-    NANOSECONDS = 1_000_000_000
 
-    attr_reader :angle, :pin
+    attr_reader :angle
 
     def initialize(pin, min_us, max_us, min_angle, max_angle)
-      @pin = pin
-      WiringX.pwm_set_period(pin, NANOSECONDS / FREQUENCY)
-      WiringX.pwm_set_duty(pin, 0)
-      WiringX.pwm_set_polarity(pin, 0)
-      WiringX.pwm_enable(pin, 1)
+      super(pin, frequency: FREQUENCY)
 
       raise "min_us: #{min_us} cannot be lower than max_us: #{max_us}" if max_us < min_us
       @min_us = min_us
@@ -25,8 +20,8 @@ module WiringX
       ratio = (a - @min_angle).to_f / (@max_angle - @min_angle)
       raise "angle: #{a} outside servo range" if (ratio < 0) || (ratio > 1)
 
-      d_ns = ((@us_range * ratio) + @min_us) * 1000
-      WiringX.pwm_set_duty(pin, d_ns)
+      d_us = (@us_range * ratio) + @min_us
+      self.duty_us = d_us
       @angle = a
     end
   end
