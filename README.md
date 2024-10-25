@@ -5,14 +5,19 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
 ## Standard WiringX Features, as class methods on `WiringX`:
 
 - [x] GPIO Mode/Read/Write
-- [ ] GPIO Alerts
+- [x] GPIO Input Alerts
+  - Uses an alert queue like lgpio on CRuby
+  - *Does not* use interrupts like lgpio. Polls pins every ~100us instead
+  - Call `.claim_alert(pin)` to start reading a pin
+  - Call `.stop_alert(pin)` to stop reading a pin
+  - Call `.get_alert` to get an alert from the queue
 - [x] PWM Output
 - [x] Hardware I2C, but simplified:
   - `.i2c_setup` works just like the corresponding C function
   - `.i2c_write` doesn't match any C function. Raw write of any length byte array.
   - `.i2c_read` doesn't match any C function. Raw read of any length byte array.
 - [x] Hardware SPI
-  - Main method is `.spi_xfer` instead of expected `.spi_data_rw`, matching the `lgpio` CRuby gem.
+  - Main method is `.spi_xfer`, matching lgpio CRuby gem, instead of expected `.spi_data_rw`.
 
 ## Extra Features, as class methods on `WiringX`:
 - [ ] Ultrasonic Read (HC-SR04)

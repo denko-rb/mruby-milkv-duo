@@ -5,9 +5,12 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <time.h>
+#include <pthread.h>
 
 #include <mruby.h>
 #include <mruby/array.h>
+#include <mruby/hash.h>
+#include <mruby/variable.h>
 #include <mruby/value.h>
 #include <wiringx.h>
 
@@ -97,6 +100,191 @@ mrbWX_digital_read(mrb_state* mrb, mrb_value self) {
   mrb_get_args(mrb, "i", &pin);
   state = digitalRead(pin);
   return mrb_fixnum_value(state);
+}
+
+/****************************************************************************/
+/*                          GPIO ALERTS / LISTENERS                         */
+/****************************************************************************/
+typedef struct
+{
+   // uint64_t timestamp;
+   int pin;
+   int level;
+} wxGpioReport_t;
+
+// Set up a queue for up to 2**16 GPIO reports.
+#define QUEUE_LENGTH UINT16_MAX + 1
+static wxGpioReport_t reportQueue[QUEUE_LENGTH];
+static uint16_t qWritePos = 1;
+static uint16_t qReadPos  = 0;
+
+// Add a report to the queue
+static void mrbWX_queue_report(uint32_t pin, uint32_t level) {
+  struct timespec ts;
+  clock_gettime(CLOCK_MONOTONIC, &ts);
+  // reportQueue[qWritePos].timestamp  = (uint64_t)((ts.tv_sec * 1000000000ULL) + (ts.tv_nsec));
+  reportQueue[qWritePos].pin        = pin;
+  reportQueue[qWritePos].level      = level;
+
+  // Update queue pointers
+  qWritePos++;
+  // qReadPos is the LAST report read. If passing by 1, increment it too. Lose oldest data first.
+  if (qWritePos - qReadPos == 1) qReadPos++;
+}
+
+// Storage for up to 32 listeners
+#define LISTENER_COUNT 32
+typedef struct
+{
+  int active;
+  int pin;
+  int state;
+  int changed;
+} wxGpioListener_t;
+static wxGpioListener_t listeners[LISTENER_COUNT];
+static int lastActiveListener = -1;
+
+// Poll in a separate thread roughly every 100 microseconds.
+#define LISTEN_INTERVAL_NS 100000
+static pthread_mutex_t queueLock;
+static pthread_t listenThread;
+static int runListenThread = 0;
+
+void mrbWX_listen_thread(){
+  struct timespec start, finish, sleep_time;
+  sleep_time.tv_sec = 0;
+  uint64_t time_taken;
+  int readState;
+
+  while(runListenThread){
+    clock_gettime(CLOCK_MONOTONIC, &start);
+
+    // Update all the listeners.
+    pthread_mutex_lock(&queueLock);
+    for(int i=0; i<=lastActiveListener; i++) {
+      if (listeners[i].active == 1) {
+        readState = digitalRead(listeners[i].pin);
+        if (readState != listeners[i].state) {
+          listeners[i].state   = readState;
+          listeners[i].changed = 1;
+        }
+      }
+    }
+
+    // Generate alerts.
+    for(int i=0; i<=lastActiveListener; i++) {
+      if(listeners[i].changed == 1) {
+         mrbWX_queue_report(listeners[i].pin, listeners[i].state);
+         listeners[i].changed = 0;
+      }
+    }
+    pthread_mutex_unlock(&queueLock);
+
+    clock_gettime(CLOCK_MONOTONIC, &finish);
+
+    // Sleep
+    time_taken = nanoDiff(&finish, &start);
+    if (time_taken < LISTEN_INTERVAL_NS) {
+      sleep_time.tv_nsec = LISTEN_INTERVAL_NS - time_taken;
+      nanosleep(&sleep_time, NULL);
+    }
+  }
+}
+
+static void
+mrbWX_start_listen_thread(mrb_state* mrb) {
+  if (runListenThread != 1){
+    // Deactive all listeners
+    pthread_mutex_lock(&queueLock);
+    for(int i=0; i<LISTENER_COUNT; i++) {
+      listeners[i].active = 0;
+      listeners[i].pin    = -1;
+    }
+    pthread_mutex_unlock(&queueLock);
+
+    // Start the thread
+    runListenThread = 1;
+    int err = pthread_create(&listenThread, NULL, mrbWX_listen_thread, NULL);
+    if(err != 0) mrb_raise(mrb, E_TYPE_ERROR, "Could not start listen thread");
+  }
+}
+
+static mrb_value
+mrbWX_claim_alert(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  // Start listen thread if needed;
+  mrbWX_start_listen_thread(mrb);
+
+  // Check for existing listener on this pin.
+  pthread_mutex_lock(&queueLock);
+  int pos = 0;
+  while(pos < LISTENER_COUNT) {
+    if (listeners[pos].pin == pin) break;
+    pos++;
+  }
+
+  // Find lowest inactive position if not.
+  if (pos == LISTENER_COUNT) {
+    pos = 0;
+    while(pos < LISTENER_COUNT) {
+      if (listeners[pos].active == 0) break;
+      pos++;
+    }
+  }
+
+  // If available, set it up.
+  if (pos < LISTENER_COUNT) {
+    pinMode(pin, PINMODE_INPUT);
+    listeners[pos].active  = 1;
+    listeners[pos].pin     = pin;
+    listeners[pos].state   = digitalRead(pin);
+    listeners[pos].changed = 0;
+    if (pos > lastActiveListener) lastActiveListener = pos;
+  }
+  pthread_mutex_unlock(&queueLock);
+
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrbWX_stop_alert(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  // Stop any listener with this pin.
+  for(int i=0; i<LISTENER_COUNT; i++) {
+    if (listeners[i].pin == pin) {
+      listeners[i].active = 0;
+    }
+  }
+
+  // If none active, let the listen thread stop.
+  int oneActive = 0;
+  for(int i=0; i<LISTENER_COUNT; i++) {
+    if (listeners[i].active == 1) oneActive = 1;
+  }
+  if (oneActive == 0) runListenThread = 0;
+}
+
+static mrb_value
+mrbWX_get_alert(mrb_state* mrb, mrb_value self) {
+  mrb_value hash = mrb_hash_new(mrb);
+  uint8_t popped = 0;
+
+  pthread_mutex_lock(&queueLock);
+  // qWritePos is where the NEXT report will go. Always trail it by 1.
+  if (qWritePos - qReadPos != 1){
+    qReadPos += 1;
+    // mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "timestamp")), mrb_fixnum_value(reportQueue[qReadPos].timestamp));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "pin")), mrb_fixnum_value(reportQueue[qReadPos].pin));
+    mrb_hash_set(mrb, hash, mrb_symbol_value(mrb_intern_lit(mrb, "level")), mrb_fixnum_value(reportQueue[qReadPos].level));
+    popped = 1;
+  }
+  pthread_mutex_unlock(&queueLock);
+
+  return popped ? hash : mrb_nil_value();
 }
 
 /****************************************************************************/
@@ -327,8 +515,6 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_const(mrb, mrbWX, "PINMODE_INPUT",     mrb_fixnum_value(PINMODE_INPUT));
   mrb_define_const(mrb, mrbWX, "PINMODE_OUTPUT",    mrb_fixnum_value(PINMODE_OUTPUT));
   mrb_define_const(mrb, mrbWX, "PINMODE_INTERRUPT", mrb_fixnum_value(PINMODE_INTERRUPT));
-  mrb_define_const(mrb, mrbWX, "PINMODE_INTERRUPT", mrb_fixnum_value(PINMODE_INTERRUPT));
-  mrb_define_const(mrb, mrbWX, "PINMODE_INTERRUPT", mrb_fixnum_value(PINMODE_INTERRUPT));
   mrb_define_const(mrb, mrbWX, "LOW",               mrb_fixnum_value(LOW));
   mrb_define_const(mrb, mrbWX, "HIGH",              mrb_fixnum_value(HIGH));
 
@@ -342,6 +528,11 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "pin_mode",       mrbWX_pin_mode,       MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "digital_write",  mrbWX_digital_write,  MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "digital_read",   mrbWX_digital_read,   MRB_ARGS_REQ(1));
+
+  // GPIO Alerts
+  mrb_define_method(mrb, mrbWX, "claim_alert",    mrbWX_claim_alert,    MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrbWX, "stop_alert",     mrbWX_stop_alert,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrbWX, "get_alert",      mrbWX_get_alert,      MRB_ARGS_REQ(0));
 
   // PWM
   mrb_define_method(mrb, mrbWX, "pwm_enable",       mrbWX_pwm_enable,       MRB_ARGS_REQ(2));
