@@ -120,13 +120,14 @@ mrbWX_i2c_write(mrb_state* mrb, mrb_value self) {
   mrb_int fd;
   mrb_value txArray;
   mrb_get_args(mrb, "iA", &fd, &txArray);
+  if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "I2C bytes must be given as Array");
 
   // Copy mrb array txArray into C array txBuf.
   mrb_int length = RARRAY_LEN(txArray);
   uint8_t txBuf[length];
   for (int i=0; i<length; i++) {
     mrb_value elem = mrb_ary_ref(mrb, txArray, i);
-    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "I2C data bytes can only be integers");
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each I2C byte must be Integer");
     txBuf[i] = mrb_integer(elem);
   }
 
@@ -171,6 +172,7 @@ mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
   mrb_int index, rxLength;
   mrb_value txArray;
   mrb_get_args(mrb, "iAi", &index, &txArray, &rxLength);
+  if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
 
   // Reading more than writing, or writing more than reading?
   mrb_int txLength = RARRAY_LEN(txArray);
@@ -180,7 +182,7 @@ mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
   // Copy bytes from txArray into rwBuffer.
   for (int i=0; i<txLength; i++) {
     mrb_value elem = mrb_ary_ref(mrb, txArray, i);
-    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "SPI data bytes can only be integers");
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each SPI byte must be Integer");
     rwBuf[i] = mrb_integer(elem);
   }
   // Extend with 0s if needed.
@@ -203,6 +205,7 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
   mrb_int index;
   mrb_value pixelArray;
   mrb_get_args(mrb, "iA", &index, &pixelArray);
+  if (!mrb_array_p(pixelArray)) mrb_raise(mrb, E_TYPE_ERROR, "WS2812 bytes must be given as Array");
 
   int count = RARRAY_LEN(pixelArray);
   int zeroesBefore = 1;  // 1/4 of lgpio rounded up, since uint32 instead of uint8.
@@ -218,7 +221,7 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
 
   for (int i=0; i<count; i++){
     mrb_currentByte = mrb_ary_ref(mrb, pixelArray, i);
-    if (!mrb_integer_p(mrb_currentByte)) mrb_raise(mrb, E_TYPE_ERROR, "WS2812 data bytes can only be integers");
+    if (!mrb_integer_p(mrb_currentByte)) mrb_raise(mrb, E_TYPE_ERROR, "Each WS2812 byte must be Integer");
     currentByte = mrb_integer(mrb_currentByte);
 
     // 4 SPI bits per data bit, instead of 3 like other implementations.
