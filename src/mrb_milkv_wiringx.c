@@ -503,6 +503,198 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
 }
 
 /****************************************************************************/
+/*                            BIT-BANG I2C                                  */
+/****************************************************************************/
+static uint8_t bitReadU8(uint8_t* b, uint8_t i) {
+  return (*b >> i) & 0b1;
+}
+
+static void bitWriteU8(uint8_t* b, uint8_t i, uint8_t v) {
+  if (v == 0) {
+    *b &= ~(1 << i);
+  } else {
+    *b |=  (1 << i);
+  }
+}
+
+static uint8_t i2c_bb_sdaState = 2;
+static uint8_t i2c_bb_slow = 1;
+
+static void i2c_bb_sda_write(int sda, uint8_t bit) {
+  if (i2c_bb_sdaState == bit) return;
+  if ((i2c_bb_sdaState != 0) && (i2c_bb_sdaState != 1)) pinMode(sda, PINMODE_OUTPUT);
+  digitalWrite(sda, bit);
+  i2c_bb_sdaState = bit;
+}
+
+static void i2c_bb_sda_read(int sda) {
+  if (i2c_bb_sdaState == 2) return;
+  pinMode(sda, PINMODE_OUTPUT);
+  digitalWrite(sda, 1);
+  pinMode(sda, PINMODE_INPUT);
+  i2c_bb_sdaState = 2;
+}
+
+static void i2c_bb_scl_write(int scl, uint8_t bit) {
+  digitalWrite(scl, bit);
+  // C906 goes too fast for some I2C peripherals, but calling nanoDelay
+  // after each clock edge, even with 0ns, slows into the ~400 KHz range.
+  if (i2c_bb_slow) nanoDelay(0);
+}
+
+// Start condition is SDA then SCL going low, from both high.
+static void i2c_bb_start(int scl, int sda) {
+  i2c_bb_sda_write(sda, 0);
+  i2c_bb_scl_write(scl, 0);
+}
+
+// Stop condition is SDA going high, while SCL is also high.
+static void i2c_bb_stop(int scl, int sda) {
+  i2c_bb_sda_write(sda, 0);
+  i2c_bb_scl_write(scl, 1);
+  i2c_bb_sda_read(sda);
+}
+
+static uint8_t i2c_bb_read_bit(int scl, int sda) {
+  uint8_t bit;
+  // Ensure SDA high before pulling SCL high.
+  i2c_bb_sda_read(sda);
+  i2c_bb_scl_write(scl, 1);
+  bit = digitalRead(sda);
+  i2c_bb_scl_write(scl, 0);
+  return bit;
+}
+
+static void i2c_bb_write_bit(int scl, int sda, uint8_t bit) {
+  // Set SDA while SCL is low.
+  i2c_bb_sda_write(sda, bit);
+  i2c_bb_scl_write(scl, 1);
+  i2c_bb_scl_write(scl, 0);
+}
+
+static uint8_t i2c_bb_read_byte(int scl, int sda, uint8_t ack) {
+  uint8_t b;
+  // Receive MSB first.
+  for (int i=7; i>=0; i--) bitWriteU8(&b, i, i2c_bb_read_bit(scl, sda));
+  // Send ACK or NACK and return byte.
+  i2c_bb_write_bit(scl, sda, ack ^ 0b1);
+  return b;
+}
+
+static int i2c_bb_write_byte(int scl, int sda, uint8_t b) {
+  // Send MSB first.
+  for (int i=7; i>=0; i--) i2c_bb_write_bit(scl, sda, bitReadU8(&b, i));
+  // Return -1 for NACK, 0 for ACK.
+  return (i2c_bb_read_bit(scl, sda) == 0) ? 0 : -1;
+}
+
+static void i2c_bb_reset(int scl, int sda) {
+  // SCL is a driven output. SDA simulates an open drain with pullup enabled.
+  // Simulate stop condition, but make sure modes and sda state set properly.
+  i2c_bb_sda_read(sda);
+  pinMode(scl, PINMODE_OUTPUT);
+  digitalWrite(scl, 1);
+  i2c_bb_slow = 1;
+}
+
+static mrb_value
+mrbWX_i2c_bb_setup(mrb_state* mrb, mrb_value self) {
+  mrb_int scl, sda;
+  mrb_get_args(mrb, "ii", &scl, &sda);
+  i2c_bb_reset(scl, sda);
+}
+
+static mrb_value
+mrbWX_i2c_bb_search(mrb_state* mrb, mrb_value self) {
+  mrb_int scl, sda;
+  mrb_get_args(mrb, "ii", &scl, &sda);
+
+  int ack;
+  uint8_t present[128];
+  for(int i=0; i<128; i++) present[i] = 0;
+  uint8_t presentCount = 0;
+
+  i2c_bb_reset(scl, sda);
+  // Only addresses from 0x08 to 0x77 are usable (8 to 127).
+  for (uint8_t addr = 0x08; addr < 0x78;  addr++) {
+    i2c_bb_start(scl, sda);
+    ack = i2c_bb_write_byte(scl, sda, ((addr << 1) & 0b11111110));
+    i2c_bb_stop(scl, sda);
+    if (ack == 0){
+      present[addr] = 1;
+      presentCount++;
+    } else {
+      present[addr] = 0;
+    }
+  }
+
+  if (presentCount == 0) return mrb_nil_value();
+  mrb_value retArray = mrb_ary_new_capa(mrb, presentCount);
+  for (uint8_t addr = 0x08; addr < 0x78;  addr++) {
+    if (present[addr] == 1) mrb_ary_push(mrb, retArray, mrb_fixnum_value(addr));
+  }
+  return retArray;
+}
+
+static mrb_value
+mrbWX_i2c_bb_read(mrb_state* mrb, mrb_value self) {
+  mrb_int scl, sda, address, count;
+  mrb_get_args(mrb, "iiii", &scl, &sda, &address, &count);
+
+  uint8_t rxBuf[count];
+  uint8_t readAddress  = (address << 1) | 0b00000001;
+  i2c_bb_reset(scl, sda);
+
+  i2c_bb_start(scl, sda);
+  int ack = i2c_bb_write_byte(scl, sda, readAddress);
+  // Device with this address not present on the bus.
+  if (ack != 0) return mrb_nil_value();
+  // Read and ACK for all but the last byte.
+  int pos = 0;
+  while(pos < count-1) {
+    rxBuf[pos] = i2c_bb_read_byte(scl, sda, 1);
+    pos++;
+  }
+  rxBuf[pos] = i2c_bb_read_byte(scl, sda, 0);
+  i2c_bb_stop(scl, sda);
+
+  mrb_value retArray = mrb_ary_new_capa(mrb, count);
+  for(int i=0; i<count; i++) mrb_ary_push(mrb, retArray, mrb_fixnum_value(rxBuf[i]));
+  return retArray;
+}
+
+static mrb_value
+mrbWX_i2c_bb_write(mrb_state* mrb, mrb_value self) {
+  mrb_int scl, sda, address;
+  mrb_value txArray, options;
+  mrb_get_args(mrb, "iiiA|H", &scl, &sda, &address, &txArray, &options);
+  if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "I2C bytes must be given as Array");
+
+  // Copy mrb array txArray into C array txBuf.
+  mrb_int length = RARRAY_LEN(txArray);
+  uint8_t txBuf[length];
+  for (int i=0; i<length; i++) {
+    mrb_value elem = mrb_ary_ref(mrb, txArray, i);
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each I2C byte must be Integer");
+    txBuf[i] = mrb_integer(elem);
+  }
+
+  uint8_t writeAddress = (address << 1);
+
+  // Reset, then apply fast: true from the options hash, if applicable.
+  i2c_bb_reset(scl, sda);
+  if (mrb_hash_p(options)) {
+    mrb_value fast = mrb_hash_get(mrb, options, mrb_symbol_value(mrb_intern_lit(mrb, "fast")));
+    if (mrb_bool(fast)) i2c_bb_slow = 0;
+  }
+
+  i2c_bb_start(scl, sda);
+  i2c_bb_write_byte(scl, sda, writeAddress);
+  for (int i=0; i<length; i++) i2c_bb_write_byte(scl, sda, txBuf[i]);
+  i2c_bb_stop(scl, sda);
+}
+
+/****************************************************************************/
 /*                               GEM INIT                                   */
 /****************************************************************************/
 void
@@ -550,6 +742,12 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "spi_setup",        mrbWX_spi_setup,        MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
   mrb_define_method(mrb, mrbWX, "spi_ws2812_write", mrbWX_spi_ws2812_write, MRB_ARGS_REQ(2));
+
+  // I2C Bit-bang
+  mrb_define_method(mrb, mrbWX, "i2c_bb_setup",     mrbWX_i2c_bb_setup,     MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "i2c_bb_search",    mrbWX_i2c_bb_search,    MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "i2c_bb_read",      mrbWX_i2c_bb_read,      MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, mrbWX, "i2c_bb_write",     mrbWX_i2c_bb_write,     MRB_ARGS_REQ(4));
 }
 
 void

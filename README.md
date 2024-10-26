@@ -22,7 +22,7 @@ This mrbgem is for the [Milk-V Duo](https://milkv.io/duo) series of single board
 ## Extra Features, as class methods on `WiringX`:
 - [ ] Ultrasonic Read (HC-SR04)
 - [ ] Pulse Sequence Read (DHT enviro sensors)
-- [ ] Bit Bang I2C
+- [x] Bit Bang I2C
 - [ ] Bit Bang SPI
 - [ ] Bit Bang 1-Wire
 - [x] WS2812 addressable LEDs over Hardware SPI
