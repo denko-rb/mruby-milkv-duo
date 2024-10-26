@@ -11,5 +11,6 @@ MRuby::Gem::Specification.new('mruby-milkv-wiringx') do |spec|
     "#{dir}/mrblib/wiringx/hardware_pwm.rb",
     "#{dir}/mrblib/wiringx/positional_servo.rb",
     "#{dir}/mrblib/wiringx/infrared.rb",
+    "#{dir}/mrblib/wiringx/one_wire.rb",
   ]
 end

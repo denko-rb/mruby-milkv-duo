@@ -502,6 +502,86 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
   return mrb_fixnum_value(result);
 }
 
+/*****************************************************************************/
+/*                       BIT BANG 1-WIRE HEPERS                              */
+/*****************************************************************************/
+static mrb_value
+mrbWX_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  uint8_t bit = 1;
+  struct timespec start;
+  struct timespec now;
+
+  // Start the read slot.
+  pinMode(pin, PINMODE_OUTPUT);
+  digitalWrite(pin, 0);
+  microDelay(1);
+  pinMode(pin, PINMODE_INPUT);
+
+  // Poll for 60us to see if pin goes low.
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  now = start;
+  while(nanoDiff(&now, &start) < 60000){
+    if (digitalRead(pin) == 0) bit = 0;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+  }
+  return mrb_fixnum_value(bit);
+}
+
+static mrb_value
+mrbWX_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, bit;
+  mrb_get_args(mrb, "ii", &pin, &bit);
+
+  // Write slot starts by going low for at least 1us.
+  pinMode(pin, PINMODE_OUTPUT);
+  digitalWrite(pin, 0);
+  microDelay(1);
+
+  // If 0, keep it low for the rest of the 60us write slot, then release.
+  if (bit == 0) {
+    microDelay(59);
+    digitalWrite(pin, 1);
+  // If 1, release first, then wait the rest of the 60us slot.
+  } else {
+    digitalWrite(pin, 1);
+    microDelay(59);
+  }
+  pinMode(pin, PINMODE_INPUT);
+
+  // Minimum 1us recovery time after each slot.
+  microDelay(1);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrbWX_one_wire_reset(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  struct timespec start;
+  struct timespec now;
+  uint8_t presence = 1;
+
+  // Hold low for 500us to reset, then go high.
+  pinMode(pin, PINMODE_OUTPUT);
+  digitalWrite(pin, 0);
+  microDelay(500);
+  pinMode(pin, PINMODE_INPUT);
+
+  // Poll for 250us. If a device pulls the line low, return 0 (device present).
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  now = start;
+  while(nanoDiff(&now, &start) < 250000){
+    if (digitalRead(pin) == 0) presence = 0;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+  }
+
+  return mrb_fixnum_value(presence);
+}
+
 /****************************************************************************/
 /*                            BIT-BANG I2C                                  */
 /****************************************************************************/
@@ -742,6 +822,11 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "spi_setup",        mrbWX_spi_setup,        MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
   mrb_define_method(mrb, mrbWX, "spi_ws2812_write", mrbWX_spi_ws2812_write, MRB_ARGS_REQ(2));
+
+  // Bit-bang 1-Wire Helpers
+  mrb_define_method(mrb, mrbWX, "one_wire_bit_read",  mrbWX_one_wire_bit_read,  MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, mrbWX, "one_wire_bit_write", mrbWX_one_wire_bit_write, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, mrbWX, "one_wire_reset",     mrbWX_one_wire_reset,     MRB_ARGS_REQ(1));
 
   // I2C Bit-bang
   mrb_define_method(mrb, mrbWX, "i2c_bb_setup",     mrbWX_i2c_bb_setup,     MRB_ARGS_REQ(2));
