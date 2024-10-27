@@ -26,6 +26,10 @@ This mrbgem provides GPIO, PWM, I2C and SPI functionality for the [Milk-V Duo](h
 - [x] `WiringX::PositionalServo` (based on Hardware PWM)
 - [x] `WiringX::Infrared` (based on OOK waves)
   - Default frequency: 38 kHz. Default duty cycle: 33.33%
+- [X] `WiringX::AnalogInput` (based on sysfs SARADC interface)
+  - On GPIO 26 and 27 only
+  - Always 12-bit resolution (0-4095 range)
+  - Full scale voltage is only 1.8V, **not** 3.3V.
 
 **Note:** `duo-pinmux` must be used to enable alternate functions (PWM/I2C/SPI etc.) on specific pins BEFORE they can be used in mruby. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 
