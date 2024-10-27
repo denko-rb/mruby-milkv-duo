@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 SCL = 16
 SDA = 17

@@ -5,7 +5,7 @@
 # If using one of these, use a 5V to 3.3V level shifter between your board and
 # the sensor, at least on the echo pin.
 #
-include WiringX
+include Duo
 
 TRIGGER_PIN     = 18
 ECHO_PIN        = 19
@@ -17,7 +17,7 @@ loop do
   #
   # HC-SR04 uses 10 microseconds for trigger. Some others use 20us.
   #
-  microseconds = WiringX.read_ultrasonic(TRIGGER_PIN, ECHO_PIN, 10)
+  microseconds = Duo.read_ultrasonic(TRIGGER_PIN, ECHO_PIN, 10)
 
   if microseconds
     mm = (microseconds / 2000.0) * SPEED_OF_SOUND

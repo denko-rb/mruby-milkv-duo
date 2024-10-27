@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 POWER_ON_DELAY      = 0.100
 RESET_DELAY         = 0.020

@@ -1,5 +1,5 @@
-# Top-level include WiringX, to call its class methods directly.
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 # Poll these 8 pins, in a separate thread, every ~100us.
 PINS = (14..21).to_a

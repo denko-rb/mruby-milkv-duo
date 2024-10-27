@@ -1,7 +1,7 @@
-include WiringX
+include Duo
 
-a1 = WiringX::AnalogInput.new(26)
-a2 = WiringX::AnalogInput.new(27)
+a1 = Duo::AnalogInput.new(26)
+a2 = Duo::AnalogInput.new(27)
 
 loop do
   puts "GPIO26: #{a1.read}"

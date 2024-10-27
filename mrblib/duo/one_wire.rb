@@ -1,4 +1,4 @@
-module WiringX
+module Duo
   class OneWire
     # Constants
     READ_POWER_SUPPLY = 0xB4
@@ -18,19 +18,19 @@ module WiringX
     def initialize(pin)
       @pin = pin
       @found_addresses = []
-      WiringX.pin_mode(pin, PINMODE_OUTPUT)
+      Duo.pin_mode(pin, PINMODE_OUTPUT)
     end
 
     def reset
       # one_wire_reset returns 0 if device present on bus.
-      return (WiringX.one_wire_reset(pin) == 0)
+      return (Duo.one_wire_reset(pin) == 0)
     end
 
     def read(byte_count)
       read_bytes = []
       byte_count.times do
         byte = 0b00000000
-        8.times { |i| byte |= WiringX.one_wire_bit_read(pin) << i }
+        8.times { |i| byte |= Duo.one_wire_bit_read(pin) << i }
         read_bytes << byte
       end
       read_bytes
@@ -38,10 +38,10 @@ module WiringX
 
     def write(byte_array, parasite: nil)
       byte_array.each do |byte|
-        8.times { |i| WiringX.one_wire_bit_write(pin, (byte >> i) & 0b1) }
+        8.times { |i| Duo.one_wire_bit_write(pin, (byte >> i) & 0b1) }
       end
       # Drive bus high to feed parasite capacitor after write.
-      WiringX.digital_write(pin, 1) if parasite
+      Duo.digital_write(pin, 1) if parasite
     end
 
     def search
@@ -83,8 +83,8 @@ module WiringX
         addr = 0
         comp = 0
         8.times do |j|
-          addr |= WiringX.one_wire_bit_read(pin) << j
-          comp |= WiringX.one_wire_bit_read(pin) << j
+          addr |= Duo.one_wire_bit_read(pin) << j
+          comp |= Duo.one_wire_bit_read(pin) << j
 
           # A set (1) mask bit means we're searching a branch with that bit set.
           # Force it to be 1 on this pass. Write 1 to both the bus and address bit.
@@ -94,14 +94,14 @@ module WiringX
           #
           # Mask is a 64-bit number, not byte array.
           if ((mask >> (i*8 + j)) & 0b1) == 1
-            WiringX.one_wire_bit_write(pin, 1)
+            Duo.one_wire_bit_write(pin, 1)
             addr |= 1 << j
 
           # Whether there was no "1-branch" marked for this bit, or there is no
           # discrepancy at all, just echo address bit to the bus. We will
           # compare addr/comp to find discrepancies for future passes.
           else
-            WiringX.one_wire_bit_write(pin, (addr >> j) & 0b1)
+            Duo.one_wire_bit_write(pin, (addr >> j) & 0b1)
           end
         end
         bytes << addr

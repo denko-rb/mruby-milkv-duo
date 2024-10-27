@@ -1,9 +1,9 @@
 #
 # This is a bad example, recreating blink.rb with a 500k us delay,
 # instead of a 0.5s sleep. DON'T do this. It's more CPU intensive.
-# Only use Wiringx.micro_delay if more precise timing is required.
+# Only use Duo.micro_delay if more precise timing is required.
 #
-include WiringX
+include Duo
 
 PIN     = 25
 pin_mode(PIN, PINMODE_OUTPUT)

@@ -1,5 +1,5 @@
-# Top-level include WiringX, to call its class methods directly.
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 TOGGLES = 1_000_000
 

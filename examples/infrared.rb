@@ -1,4 +1,4 @@
-include WiringX
+include Duo
 
 FREQUENCY = 38_000
 
@@ -14,7 +14,7 @@ CODE =  [ 9000, 500,                                  # Start bit
           560, 1690, 560, 1690, 560, 1690, 560, 1690, # 1111 0xF address inverted
           560]                                        # Stop bit
 
-infrared = WiringX::Infrared.new(12, frequency: FREQUENCY)
+infrared = Duo::Infrared.new(12, frequency: FREQUENCY)
 
 loop do
   infrared.transmit(CODE)

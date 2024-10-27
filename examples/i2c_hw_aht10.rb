@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 I2C_DEV             = 1
 ADDRESS             = 0x38
@@ -11,19 +12,19 @@ SOFT_RESET          = [0xBA]
 INIT_AND_CALIBRATE  = [0xE1, 0x08, 0x00]
 START_MEASUREMENT   = [0xAC, 0x33, 0x00]
 
-aht10_handle = WiringX.i2c_setup(I2C_DEV, ADDRESS)
+aht10_handle = i2c_setup(I2C_DEV, ADDRESS)
 
 # Startup sequence
 sleep(POWER_ON_DELAY)
-WiringX.i2c_write(aht10_handle, SOFT_RESET)
+i2c_write(aht10_handle, SOFT_RESET)
 sleep(RESET_DELAY)
-WiringX.i2c_write(aht10_handle, INIT_AND_CALIBRATE)
+i2c_write(aht10_handle, INIT_AND_CALIBRATE)
 sleep(COMMAND_DELAY)
 
 # Read and close
-WiringX.i2c_write(aht10_handle, START_MEASUREMENT)
+i2c_write(aht10_handle, START_MEASUREMENT)
 sleep(MEASURE_DELAY)
-bytes = WiringX.i2c_read(aht10_handle, DATA_LENGTH)
+bytes = i2c_read(aht10_handle, DATA_LENGTH)
 
 # Humidity uses the upper 4 bits of the shared byte as its lowest 4 bits.
 h_raw = ((bytes[1] << 16) | (bytes[2] << 8) | (bytes[3])) >> 4

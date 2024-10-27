@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 INIT_ARRAY  = [0, 168, 63, 211, 0, 64, 161, 200, 218, 18, 164, 166, 213, 128, 219, 32, 217, 241, 141, 20, 32, 0, 175]
 START_ARRAY = [0, 33, 0, 127, 34, 0, 7]

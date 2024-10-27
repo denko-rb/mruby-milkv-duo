@@ -1,7 +1,7 @@
-include WiringX
+include Duo
 
 PIN = 15
-one_wire = WiringX::OneWire.new(PIN)
+one_wire = Duo::OneWire.new(PIN)
 one_wire.search
 
 puts; puts "Found these 1-wire addresss (HEX) on the bus:"; puts

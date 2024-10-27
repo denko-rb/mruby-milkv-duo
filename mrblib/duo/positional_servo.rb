@@ -1,4 +1,4 @@
-module WiringX
+module Duo
   class PositionalServo < HardwarePWM
     FREQUENCY = 50
 

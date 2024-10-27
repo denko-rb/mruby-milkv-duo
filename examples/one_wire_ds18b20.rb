@@ -1,22 +1,22 @@
-include WiringX
+include Duo
 
 PIN       = 15
 PARASITE  = false
-one_wire  = WiringX::OneWire.new(PIN)
+one_wire  = Duo::OneWire.new(PIN)
 
 one_wire.reset
 # Skip ROM
-one_wire.write([WiringX::OneWire::SKIP_ROM], parasite: PARASITE)
+one_wire.write([Duo::OneWire::SKIP_ROM], parasite: PARASITE)
 # Start conversion
-one_wire.write([WiringX::OneWire::CONVERT_T], parasite: PARASITE)
+one_wire.write([Duo::OneWire::CONVERT_T], parasite: PARASITE)
 # Wait for conversion
 sleep(1)
 # Reset
 one_wire.reset
 # Skip ROM
-one_wire.write([WiringX::OneWire::SKIP_ROM], parasite: PARASITE)
+one_wire.write([Duo::OneWire::SKIP_ROM], parasite: PARASITE)
 # Read 9 bytes from scratchpad
-one_wire.write([WiringX::OneWire::READ_SCRATCH], parasite: PARASITE)
+one_wire.write([Duo::OneWire::READ_SCRATCH], parasite: PARASITE)
 bytes = one_wire.read(9)
 
 # Temperature is the first 16 bits (2 bytes of 9 read).

@@ -1,6 +1,6 @@
-include WiringX
+include Duo
 
-pwm_out = WiringX::HardwarePWM.new(12, period: 20_000_000)
+pwm_out = Duo::HardwarePWM.new(12, period: 20_000_000)
 
 RUNS = 25_000
 start = Time.now

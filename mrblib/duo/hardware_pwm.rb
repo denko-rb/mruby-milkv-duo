@@ -1,4 +1,4 @@
-module WiringX
+module Duo
   class HardwarePWM
     NS_PER_S  = 10**9
     NS_PER_US = 10**3
@@ -24,10 +24,10 @@ module WiringX
 
     def polarity=(p=:normal)
       if p == :inversed
-        pwm_set_polarity(pin, 1)
+        Duo.pwm_set_polarity(pin, 1)
         @polarity = :inversed
       else
-        pwm_set_polarity(pin, 0)
+        Duo.pwm_set_polarity(pin, 0)
         @polarity = :normal
       end
     end
@@ -43,8 +43,8 @@ module WiringX
     end
 
     def period=(p)
-      pwm_set_duty(pin, 0) unless duty == 0
-      pwm_set_period(pin, p)
+      Duo.pwm_set_duty(pin, 0) unless duty == 0
+      Duo.pwm_set_period(pin, p)
       @frequency = nil
       @period = p
     end
@@ -67,17 +67,17 @@ module WiringX
 
     def duty=(d_ns)
       raise "duty cycle: #{d_ns} ns cannot be longer than period: #{period} ns" if d_ns > period
-      pwm_set_duty(pin, d_ns)
+      Duo.pwm_set_duty(pin, d_ns)
       @duty = d_ns
     end
 
     def disable
-      pwm_enable(pin, 0)
+      Duo.pwm_enable(pin, 0)
       @enabled = false
     end
 
     def enable
-      pwm_enable(pin, 1)
+      Duo.pwm_enable(pin, 1)
       @enabled = true
     end
   end

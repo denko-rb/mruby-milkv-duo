@@ -1,5 +1,5 @@
-# Top-level include WiringX, to call its class methods directly.
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 PIN = 15
 raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0

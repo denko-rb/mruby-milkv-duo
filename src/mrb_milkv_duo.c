@@ -875,9 +875,9 @@ mrb_i2c_bb_write(mrb_state* mrb, mrb_value self) {
 /*                               GEM INIT                                   */
 /****************************************************************************/
 void
-mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
+mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   // Module
-  struct RClass *topMod = mrb_define_module(mrb, "WiringX");
+  struct RClass *topMod = mrb_define_module(mrb, "Duo");
 
   // Constants
   mrb_define_const(mrb, topMod, "PINMODE_NOT_SET",   mrb_fixnum_value(PINMODE_NOT_SET));
@@ -888,7 +888,7 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_const(mrb, topMod, "HIGH",              mrb_fixnum_value(HIGH));
 
   // Class Methods
-  mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling WiringX.setup each script.
+  mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling Duo.setup each script.
   mrb_define_method(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
   mrb_define_method(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
@@ -937,5 +937,5 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
 }
 
 void
-mrb_mruby_milkv_wiringx_gem_final(mrb_state* mrb) {
+mrb_mruby_milkv_duo_gem_final(mrb_state* mrb) {
 }

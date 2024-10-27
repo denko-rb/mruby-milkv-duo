@@ -1,4 +1,4 @@
-module WiringX
+module Duo
   class Infrared < HardwarePWM
     FREQUENCY = 38_000
     DUTY = 33.333
@@ -11,7 +11,7 @@ module WiringX
 
     def transmit(pulses, duty: DUTY)
       self.duty_percent = duty
-      WiringX.tx_wave_ook(pin, @duty, pulses)
+      Duo.tx_wave_ook(pin, @duty, pulses)
     end
   end
 end

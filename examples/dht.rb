@@ -1,4 +1,4 @@
-include WiringX
+include Duo
 
 PIN = 14
 #
@@ -10,7 +10,7 @@ PIN = 14
 #   Maximum number of pulses to read
 #   Timeout in milliseconds
 #
-data = WiringX.read_pulses_us(PIN, 10_000, 0, 84, 100)
+data = Duo.read_pulses_us(PIN, 10_000, 0, 84, 100)
 
 # Handle errors.
 raise "error: DHT sensor not connected" unless data

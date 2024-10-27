@@ -1,4 +1,4 @@
-module WiringX
+module Duo
   class AnalogInput
     ADC_PATH = "/sys/class/cvi-saradc/cvi-saradc0/device/cv_saradc"
 

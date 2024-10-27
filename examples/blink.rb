@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 PIN     = 25
 pin_mode(PIN, PINMODE_OUTPUT)

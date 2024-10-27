@@ -1,4 +1,5 @@
-include WiringX
+# Top-level include Duo, to call its class methods directly.
+include Duo
 
 I2C_DEV     = 1
 ADDRESS     = 0x3C
@@ -8,17 +9,17 @@ PATTERN_1   = [64] + Array.new(1024) { 0b00110011 }
 PATTERN_2   = [64] + Array.new(1024) { 0b11001100 }
 
 # Open handle and setup.
-ssd1306_handle = WiringX.i2c_setup(I2C_DEV, ADDRESS)
-WiringX.i2c_write(ssd1306_handle, INIT_ARRAY)
+ssd1306_handle = i2c_setup(I2C_DEV, ADDRESS)
+i2c_write(ssd1306_handle, INIT_ARRAY)
 
 FRAME_COUNT = 100
 
 start = Time.now
 (FRAME_COUNT / 2).times do
-  WiringX.i2c_write(ssd1306_handle, START_ARRAY)
-  WiringX.i2c_write(ssd1306_handle, PATTERN_1)
-  WiringX.i2c_write(ssd1306_handle, START_ARRAY)
-  WiringX.i2c_write(ssd1306_handle, PATTERN_2)
+  i2c_write(ssd1306_handle, START_ARRAY)
+  i2c_write(ssd1306_handle, PATTERN_1)
+  i2c_write(ssd1306_handle, START_ARRAY)
+  i2c_write(ssd1306_handle, PATTERN_2)
 end
 finish = Time.now
 

@@ -2,7 +2,7 @@
 # Demo of a simple 30-detent rotary encoder.
 # PIN_A = CLK/CLOCK, PIN_B = DT/DATA, PIN_SW = SWITCH
 #
-include WiringX
+include Duo
 
 PIN_A     = 14
 PIN_B     = 15
@@ -21,7 +21,7 @@ state_b  = 0
 
 # Get alerts to update state.
 loop do
-  alert = WiringX.get_alert
+  alert = Duo.get_alert
   if alert
     if alert[:pin] == PIN_A
       # Half quadrature, so we count every detent.
