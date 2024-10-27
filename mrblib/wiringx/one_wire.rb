@@ -56,7 +56,7 @@ module WiringX
         result = search_pass(branch_mask)
 
         address, high_discrepancy = parse_search_result(result)
-        @found_addresses << address
+        @found_addresses << address if address
 
         # No unsearched discrepancies left.
         break if high_discrepancy == -1
@@ -116,6 +116,9 @@ module WiringX
 
     def parse_search_result(result)
       address, complement = split_search_result(result)
+
+      # Nothing connected to bus, AND no pullup resistor connected.
+      return [nil, -1] if (address == 0) && (complement == 0)
 
       raise "OneWire device not connected, or disconnected during search" if (address & complement) > 0
       raise "CRC error during OneWire search" unless OneWire.crc(address)
