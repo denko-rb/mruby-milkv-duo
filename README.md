@@ -4,7 +4,7 @@ This mruby gem provides GPIO, ADC, PWM, I2C and SPI functionality for the [Milk-
 
 ## Features
 
-### `Duo` class methods
+### `Duo` Class Methods
 
 - [x] GPIO Mode/Read/Write
 - [x] GPIO Input Alerts
@@ -37,7 +37,7 @@ This mruby gem provides GPIO, ADC, PWM, I2C and SPI functionality for the [Milk-
 ### Pinmux
 
 - Some features of the Duo are mulltiplexed onto the same pins
-- Use `duo-pinmux` to set them up BEFORE using them. See [opficial docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
+- Use `duo-pinmux` to set them up BEFORE using them. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 - Run `mruby pinmux_custom.rb` from the examples folder, to get the pinmux layout used in all examples
 
 ## Build Instructions
