@@ -438,7 +438,7 @@ mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   // Reading more than writing, or writing more than reading?
   mrb_int txLength = RARRAY_LEN(txArray);
   int length = (rxLength > txLength) ? rxLength : txLength;
-  uint8_t rwBuf[length+1];
+  uint8_t rwBuf[length];
 
   // Copy bytes from txArray into rwBuffer.
   for (int i=0; i<txLength; i++) {
