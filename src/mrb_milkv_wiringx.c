@@ -503,6 +503,53 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
 }
 
 /*****************************************************************************/
+/*                           BIT-BANG PULSE INPUT                            */
+/*****************************************************************************/
+static mrb_value
+mrbWX_read_ultrasonic(mrb_state* mrb, mrb_value self) {
+  mrb_int trigger, echo, triggerTime;
+  mrb_get_args(mrb, "iii", &trigger, &echo, &triggerTime);
+
+  struct timespec start;
+  struct timespec now;
+  uint8_t echoSeen = 0;
+
+  // Pull down avoids false readings if disconnected.
+  pinMode(echo, PINMODE_INPUT);
+
+  // Initial pulse on the triger pin.
+  pinMode(trigger, PINMODE_OUTPUT);
+  digitalWrite(trigger, 0);
+  microDelay(5);
+  digitalWrite(trigger, 1);
+  microDelay(triggerTime);
+  digitalWrite(trigger, 0);
+
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  now = start;
+
+  // Wait for echo to go high, up to 25,000 us after trigger.
+  while(nanoDiff(&now, &start) < 25000000){
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (digitalRead(echo) == 1) {
+      echoSeen = 1;
+      start = now;
+      break;
+    }
+  }
+  if (!echoSeen) return mrb_nil_value();
+
+  // Wait for echo to go low again, up to 25,000 us after echo start.
+  while(nanoDiff(&now, &start) < 25000000){
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (digitalRead(echo) == 0) break;
+  }
+
+  // High pulse time in microseconds.
+  return mrb_fixnum_value(round(nanoDiff(&now, &start) / 1000.0));
+}
+
+/*****************************************************************************/
 /*                       BIT BANG 1-WIRE HEPERS                              */
 /*****************************************************************************/
 static mrb_value
@@ -823,12 +870,15 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
   mrb_define_method(mrb, mrbWX, "spi_ws2812_write", mrbWX_spi_ws2812_write, MRB_ARGS_REQ(2));
 
+  // Bit-Bang Pulse Input
+  mrb_define_method(mrb, mrbWX, "read_ultrasonic",  mrbWX_read_ultrasonic,  MRB_ARGS_REQ(3));
+
   // Bit-bang 1-Wire Helpers
   mrb_define_method(mrb, mrbWX, "one_wire_bit_read",  mrbWX_one_wire_bit_read,  MRB_ARGS_REQ(1));
   mrb_define_method(mrb, mrbWX, "one_wire_bit_write", mrbWX_one_wire_bit_write, MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "one_wire_reset",     mrbWX_one_wire_reset,     MRB_ARGS_REQ(1));
 
-  // I2C Bit-bang
+  // Bit-bang I2C
   mrb_define_method(mrb, mrbWX, "i2c_bb_setup",     mrbWX_i2c_bb_setup,     MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "i2c_bb_search",    mrbWX_i2c_bb_search,    MRB_ARGS_REQ(2));
   mrb_define_method(mrb, mrbWX, "i2c_bb_read",      mrbWX_i2c_bb_read,      MRB_ARGS_REQ(4));
