@@ -61,7 +61,7 @@ mrb_microDelay(mrb_state* mrb, mrb_value self) {
 /*                                 GPIO                                     */
 /****************************************************************************/
 static mrb_value
-mrbWX_setup(mrb_state* mrb, mrb_value self) {
+mrb_wx_setup(mrb_state* mrb, mrb_value self) {
   int result = wiringXSetup(MILKV_DUO_VARIANT, NULL);
   if (result == -1) {
     wiringXGC();
@@ -71,7 +71,7 @@ mrbWX_setup(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_valid_gpio(mrb_state* mrb, mrb_value self) {
+mrb_valid_gpio(mrb_state* mrb, mrb_value self) {
   mrb_int pin, valid;
   mrb_get_args(mrb, "i", &pin);
   valid = wiringXValidGPIO(pin);
@@ -79,7 +79,7 @@ mrbWX_valid_gpio(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_pin_mode(mrb_state* mrb, mrb_value self) {
+mrb_pin_mode(mrb_state* mrb, mrb_value self) {
   mrb_int pin, mode;
   mrb_get_args(mrb, "ii", &pin, &mode);
   pinMode(pin, mode);
@@ -87,7 +87,7 @@ mrbWX_pin_mode(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_digital_write(mrb_state* mrb, mrb_value self) {
+mrb_digital_write(mrb_state* mrb, mrb_value self) {
   mrb_int pin, state;
   mrb_get_args(mrb, "ii", &pin, &state);
   digitalWrite(pin, state);
@@ -95,7 +95,7 @@ mrbWX_digital_write(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_digital_read(mrb_state* mrb, mrb_value self) {
+mrb_digital_read(mrb_state* mrb, mrb_value self) {
   mrb_int pin, state;
   mrb_get_args(mrb, "i", &pin);
   state = digitalRead(pin);
@@ -119,7 +119,7 @@ static uint16_t qWritePos = 1;
 static uint16_t qReadPos  = 0;
 
 // Add a report to the queue
-static void mrbWX_queue_report(uint32_t pin, uint32_t level) {
+static void queue_report(uint32_t pin, uint32_t level) {
   struct timespec ts;
   clock_gettime(CLOCK_MONOTONIC, &ts);
   // reportQueue[qWritePos].timestamp  = (uint64_t)((ts.tv_sec * 1000000000ULL) + (ts.tv_nsec));
@@ -150,7 +150,7 @@ static pthread_mutex_t queueLock;
 static pthread_t listenThread;
 static int runListenThread = 0;
 
-void mrbWX_listen_thread(){
+static void listen(){
   struct timespec start, finish, sleep_time;
   sleep_time.tv_sec = 0;
   uint64_t time_taken;
@@ -174,7 +174,7 @@ void mrbWX_listen_thread(){
     // Generate alerts.
     for(int i=0; i<=lastActiveListener; i++) {
       if(listeners[i].changed == 1) {
-         mrbWX_queue_report(listeners[i].pin, listeners[i].state);
+         queue_report(listeners[i].pin, listeners[i].state);
          listeners[i].changed = 0;
       }
     }
@@ -191,8 +191,7 @@ void mrbWX_listen_thread(){
   }
 }
 
-static void
-mrbWX_start_listen_thread(mrb_state* mrb) {
+static void start_listen_thread(mrb_state* mrb) {
   if (runListenThread != 1){
     // Deactive all listeners
     pthread_mutex_lock(&queueLock);
@@ -204,18 +203,18 @@ mrbWX_start_listen_thread(mrb_state* mrb) {
 
     // Start the thread
     runListenThread = 1;
-    int err = pthread_create(&listenThread, NULL, mrbWX_listen_thread, NULL);
+    int err = pthread_create(&listenThread, NULL, listen, NULL);
     if(err != 0) mrb_raise(mrb, E_TYPE_ERROR, "Could not start listen thread");
   }
 }
 
 static mrb_value
-mrbWX_claim_alert(mrb_state* mrb, mrb_value self) {
+mrb_claim_alert(mrb_state* mrb, mrb_value self) {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
 
   // Start listen thread if needed;
-  mrbWX_start_listen_thread(mrb);
+  start_listen_thread(mrb);
 
   // Check for existing listener on this pin.
   pthread_mutex_lock(&queueLock);
@@ -249,7 +248,7 @@ mrbWX_claim_alert(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_stop_alert(mrb_state* mrb, mrb_value self) {
+mrb_stop_alert(mrb_state* mrb, mrb_value self) {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
 
@@ -269,7 +268,7 @@ mrbWX_stop_alert(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_get_alert(mrb_state* mrb, mrb_value self) {
+mrb_get_alert(mrb_state* mrb, mrb_value self) {
   mrb_value hash = mrb_hash_new(mrb);
   uint8_t popped = 0;
 
@@ -291,7 +290,7 @@ mrbWX_get_alert(mrb_state* mrb, mrb_value self) {
 /*                                   PWM                                    */
 /****************************************************************************/
 static mrb_value
-mrbWX_pwm_enable(mrb_state* mrb, mrb_value self) {
+mrb_pwm_enable(mrb_state* mrb, mrb_value self) {
   mrb_int pin, enabled;
   mrb_get_args(mrb, "ii", &pin, &enabled);
   wiringXPWMEnable(pin, enabled);
@@ -299,7 +298,7 @@ mrbWX_pwm_enable(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_pwm_set_polarity(mrb_state* mrb, mrb_value self) {
+mrb_pwm_set_polarity(mrb_state* mrb, mrb_value self) {
   mrb_int pin, polarity;
   mrb_get_args(mrb, "ii", &pin, &polarity);
   wiringXPWMSetPolarity(pin, polarity);
@@ -307,7 +306,7 @@ mrbWX_pwm_set_polarity(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_pwm_set_period(mrb_state* mrb, mrb_value self) {
+mrb_pwm_set_period(mrb_state* mrb, mrb_value self) {
   mrb_int pin, period;
   mrb_get_args(mrb, "ii", &pin, &period);
   wiringXPWMSetPeriod(pin, period);
@@ -315,7 +314,7 @@ mrbWX_pwm_set_period(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_pwm_set_duty(mrb_state* mrb, mrb_value self) {
+mrb_pwm_set_duty(mrb_state* mrb, mrb_value self) {
   mrb_int pin, duty;
   mrb_get_args(mrb, "ii", &pin, &duty);
   wiringXPWMSetDuty(pin, duty);
@@ -323,7 +322,7 @@ mrbWX_pwm_set_duty(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-tx_wave_ook(mrb_state* mrb, mrb_value self) {
+mrb_tx_wave_ook(mrb_state* mrb, mrb_value self) {
   mrb_int pin, duty;
   mrb_value txArray;
   mrb_get_args(mrb, "iiA", &pin, &duty, &txArray);
@@ -362,7 +361,7 @@ tx_wave_ook(mrb_state* mrb, mrb_value self) {
 /*                                   I2C                                    */
 /****************************************************************************/
 static mrb_value
-mrbWX_i2c_setup(mrb_state* mrb, mrb_value self) {
+mrb_i2c_setup(mrb_state* mrb, mrb_value self) {
   // Args are Linux I2C dev index, and peripheral I2C address.
   mrb_int index, address;
   mrb_get_args(mrb, "ii", &index, &address);
@@ -377,7 +376,7 @@ mrbWX_i2c_setup(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_i2c_write(mrb_state* mrb, mrb_value self) {
+mrb_i2c_write(mrb_state* mrb, mrb_value self) {
   // Args are I2C file descriptor, and array of bytes to send.
   mrb_int fd;
   mrb_value txArray;
@@ -399,7 +398,7 @@ mrbWX_i2c_write(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_i2c_read(mrb_state* mrb, mrb_value self) {
+mrb_i2c_read(mrb_state* mrb, mrb_value self) {
   // Args are I2C file descriptor, and number of bytes to read.
   mrb_int fd, length;
   mrb_get_args(mrb, "ii", &fd, &length);
@@ -418,7 +417,7 @@ mrbWX_i2c_read(mrb_state* mrb, mrb_value self) {
 /*                                   SPI                                    */
 /****************************************************************************/
 static mrb_value
-mrbWX_spi_setup(mrb_state* mrb, mrb_value self) {
+mrb_spi_setup(mrb_state* mrb, mrb_value self) {
   // Args are Linux SPI dev index, and clock speed.
   mrb_int index, speed;
   mrb_get_args(mrb, "ii", &index, &speed);
@@ -429,7 +428,7 @@ mrbWX_spi_setup(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
+mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   // Args are SPI index, array of bytes to write, length of bytes to read.
   mrb_int index, rxLength;
   mrb_value txArray;
@@ -462,7 +461,7 @@ mrbWX_spi_xfer(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
+mrb_spi_ws2812_write(mrb_state* mrb, mrb_value self){
   // Args are SPI index, and array of pixels to write.
   mrb_int index;
   mrb_value pixelArray;
@@ -506,7 +505,7 @@ mrbWX_spi_ws2812_write(mrb_state* mrb, mrb_value self){
 /*                           BIT-BANG PULSE INPUT                            */
 /*****************************************************************************/
 static mrb_value
-mrbWX_read_ultrasonic(mrb_state* mrb, mrb_value self) {
+mrb_read_ultrasonic(mrb_state* mrb, mrb_value self) {
   mrb_int trigger, echo, triggerTime;
   mrb_get_args(mrb, "iii", &trigger, &echo, &triggerTime);
 
@@ -550,7 +549,7 @@ mrbWX_read_ultrasonic(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_read_pulses_us(mrb_state* mrb, mrb_value self) {
+mrb_read_pulses_us(mrb_state* mrb, mrb_value self) {
   mrb_int gpio, reset_us, resetLevel, limit, timeout_ms;
   mrb_get_args(mrb, "iiiii", &gpio, &reset_us, &resetLevel, &limit, &timeout_ms);
   uint64_t timeout_ns = timeout_ms * 1000000;
@@ -604,7 +603,7 @@ mrbWX_read_pulses_us(mrb_state* mrb, mrb_value self) {
 /*                       BIT BANG 1-WIRE HEPERS                              */
 /*****************************************************************************/
 static mrb_value
-mrbWX_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
+mrb_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
 
@@ -629,7 +628,7 @@ mrbWX_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
+mrb_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
   mrb_int pin, bit;
   mrb_get_args(mrb, "ii", &pin, &bit);
 
@@ -655,7 +654,7 @@ mrbWX_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_one_wire_reset(mrb_state* mrb, mrb_value self) {
+mrb_one_wire_reset(mrb_state* mrb, mrb_value self) {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
 
@@ -776,14 +775,14 @@ static void i2c_bb_reset(int scl, int sda) {
 }
 
 static mrb_value
-mrbWX_i2c_bb_setup(mrb_state* mrb, mrb_value self) {
+mrb_i2c_bb_setup(mrb_state* mrb, mrb_value self) {
   mrb_int scl, sda;
   mrb_get_args(mrb, "ii", &scl, &sda);
   i2c_bb_reset(scl, sda);
 }
 
 static mrb_value
-mrbWX_i2c_bb_search(mrb_state* mrb, mrb_value self) {
+mrb_i2c_bb_search(mrb_state* mrb, mrb_value self) {
   mrb_int scl, sda;
   mrb_get_args(mrb, "ii", &scl, &sda);
 
@@ -815,7 +814,7 @@ mrbWX_i2c_bb_search(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_i2c_bb_read(mrb_state* mrb, mrb_value self) {
+mrb_i2c_bb_read(mrb_state* mrb, mrb_value self) {
   mrb_int scl, sda, address, count;
   mrb_get_args(mrb, "iiii", &scl, &sda, &address, &count);
 
@@ -842,7 +841,7 @@ mrbWX_i2c_bb_read(mrb_state* mrb, mrb_value self) {
 }
 
 static mrb_value
-mrbWX_i2c_bb_write(mrb_state* mrb, mrb_value self) {
+mrb_i2c_bb_write(mrb_state* mrb, mrb_value self) {
   mrb_int scl, sda, address;
   mrb_value txArray, options;
   mrb_get_args(mrb, "iiiA|H", &scl, &sda, &address, &txArray, &options);
@@ -878,63 +877,63 @@ mrbWX_i2c_bb_write(mrb_state* mrb, mrb_value self) {
 void
 mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
   // Module
-  struct RClass *mrbWX = mrb_define_module(mrb, "WiringX");
+  struct RClass *topMod = mrb_define_module(mrb, "WiringX");
 
   // Constants
-  mrb_define_const(mrb, mrbWX, "PINMODE_NOT_SET",   mrb_fixnum_value(PINMODE_NOT_SET));
-  mrb_define_const(mrb, mrbWX, "PINMODE_INPUT",     mrb_fixnum_value(PINMODE_INPUT));
-  mrb_define_const(mrb, mrbWX, "PINMODE_OUTPUT",    mrb_fixnum_value(PINMODE_OUTPUT));
-  mrb_define_const(mrb, mrbWX, "PINMODE_INTERRUPT", mrb_fixnum_value(PINMODE_INTERRUPT));
-  mrb_define_const(mrb, mrbWX, "LOW",               mrb_fixnum_value(LOW));
-  mrb_define_const(mrb, mrbWX, "HIGH",              mrb_fixnum_value(HIGH));
+  mrb_define_const(mrb, topMod, "PINMODE_NOT_SET",   mrb_fixnum_value(PINMODE_NOT_SET));
+  mrb_define_const(mrb, topMod, "PINMODE_INPUT",     mrb_fixnum_value(PINMODE_INPUT));
+  mrb_define_const(mrb, topMod, "PINMODE_OUTPUT",    mrb_fixnum_value(PINMODE_OUTPUT));
+  mrb_define_const(mrb, topMod, "PINMODE_INTERRUPT", mrb_fixnum_value(PINMODE_INTERRUPT));
+  mrb_define_const(mrb, topMod, "LOW",               mrb_fixnum_value(LOW));
+  mrb_define_const(mrb, topMod, "HIGH",              mrb_fixnum_value(HIGH));
 
   // Class Methods
-  mrbWX_setup(mrb, mrb_nil_value()); // Save user from calling WiringX.setup each script.
-  mrb_define_method(mrb, mrbWX, "micro_delay",    mrb_microDelay,       MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrbWX, "setup",          mrbWX_setup,          MRB_ARGS_REQ(0));
-  mrb_define_method(mrb, mrbWX, "valid_gpio",     mrbWX_valid_gpio,     MRB_ARGS_REQ(1));
+  mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling WiringX.setup each script.
+  mrb_define_method(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
 
   // Digital I/O
-  mrb_define_method(mrb, mrbWX, "pin_mode",       mrbWX_pin_mode,       MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "digital_write",  mrbWX_digital_write,  MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "digital_read",   mrbWX_digital_read,   MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "pin_mode",            mrb_pin_mode,           MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "digital_write",       mrb_digital_write,      MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "digital_read",        mrb_digital_read,       MRB_ARGS_REQ(1));
 
   // GPIO Alerts
-  mrb_define_method(mrb, mrbWX, "claim_alert",    mrbWX_claim_alert,    MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrbWX, "stop_alert",     mrbWX_stop_alert,     MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrbWX, "get_alert",      mrbWX_get_alert,      MRB_ARGS_REQ(0));
+  mrb_define_method(mrb, topMod, "claim_alert",         mrb_claim_alert,        MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "stop_alert",          mrb_stop_alert,         MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "get_alert",           mrb_get_alert,          MRB_ARGS_REQ(0));
 
   // PWM
-  mrb_define_method(mrb, mrbWX, "pwm_enable",       mrbWX_pwm_enable,       MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "pwm_set_polarity", mrbWX_pwm_set_polarity, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "pwm_set_period",   mrbWX_pwm_set_period,   MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "pwm_set_duty",     mrbWX_pwm_set_duty,     MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "tx_wave_ook",      tx_wave_ook,            MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, topMod, "pwm_enable",          mrb_pwm_enable,         MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "pwm_set_polarity",    mrb_pwm_set_polarity,   MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "pwm_set_period",      mrb_pwm_set_period,     MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "pwm_set_duty",        mrb_pwm_set_duty,       MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "tx_wave_ook",         mrb_tx_wave_ook,        MRB_ARGS_REQ(3));
 
   // I2C
-  mrb_define_method(mrb, mrbWX, "i2c_setup",        mrbWX_i2c_setup,        MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "i2c_write",        mrbWX_i2c_write,        MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "i2c_read",         mrbWX_i2c_read,         MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "i2c_setup",           mrb_i2c_setup,          MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "i2c_write",           mrb_i2c_write,          MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "i2c_read",            mrb_i2c_read,           MRB_ARGS_REQ(2));
 
   // SPI
-  mrb_define_method(mrb, mrbWX, "spi_setup",        mrbWX_spi_setup,        MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "spi_xfer",         mrbWX_spi_xfer,         MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, mrbWX, "spi_ws2812_write", mrbWX_spi_ws2812_write, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "spi_setup",           mrb_spi_setup,          MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "spi_xfer",            mrb_spi_xfer,           MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, topMod, "spi_ws2812_write",    mrb_spi_ws2812_write,   MRB_ARGS_REQ(2));
 
   // Bit-Bang Pulse Input
-  mrb_define_method(mrb, mrbWX, "read_ultrasonic",  mrbWX_read_ultrasonic,  MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, mrbWX, "read_pulses_us",   mrbWX_read_pulses_us,   MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, topMod, "read_ultrasonic",     mrb_read_ultrasonic,    MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, topMod, "read_pulses_us",      mrb_read_pulses_us,     MRB_ARGS_REQ(3));
 
   // Bit-bang 1-Wire Helpers
-  mrb_define_method(mrb, mrbWX, "one_wire_bit_read",  mrbWX_one_wire_bit_read,  MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, mrbWX, "one_wire_bit_write", mrbWX_one_wire_bit_write, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "one_wire_reset",     mrbWX_one_wire_reset,     MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "one_wire_bit_read",   mrb_one_wire_bit_read,  MRB_ARGS_REQ(1));
+  mrb_define_method(mrb, topMod, "one_wire_bit_write",  mrb_one_wire_bit_write, MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "one_wire_reset",      mrb_one_wire_reset,     MRB_ARGS_REQ(1));
 
   // Bit-bang I2C
-  mrb_define_method(mrb, mrbWX, "i2c_bb_setup",     mrbWX_i2c_bb_setup,     MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "i2c_bb_search",    mrbWX_i2c_bb_search,    MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, mrbWX, "i2c_bb_read",      mrbWX_i2c_bb_read,      MRB_ARGS_REQ(4));
-  mrb_define_method(mrb, mrbWX, "i2c_bb_write",     mrbWX_i2c_bb_write,     MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, topMod, "i2c_bb_setup",        mrb_i2c_bb_setup,       MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "i2c_bb_search",       mrb_i2c_bb_search,      MRB_ARGS_REQ(2));
+  mrb_define_method(mrb, topMod, "i2c_bb_read",         mrb_i2c_bb_read,        MRB_ARGS_REQ(4));
+  mrb_define_method(mrb, topMod, "i2c_bb_write",        mrb_i2c_bb_write,       MRB_ARGS_REQ(4));
 }
 
 void
