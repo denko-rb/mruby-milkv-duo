@@ -2,7 +2,7 @@
 include Duo
 
 # Connect external LED to GPIO2
-PIN = 12
+PIN = 10
 raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0
 
 steps = (0..100).to_a + (1..99).to_a.reverse

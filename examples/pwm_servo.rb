@@ -1,6 +1,6 @@
 include Duo
 
-PIN = 12
+PIN = 10
 
 servo = Duo::PositionalServo.new(PIN, 500, 2500, 0, 180)
 
