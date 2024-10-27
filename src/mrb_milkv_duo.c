@@ -872,6 +872,105 @@ mrb_i2c_bb_write(mrb_state* mrb, mrb_value self) {
 }
 
 /****************************************************************************/
+/*                            BIT-BANG SPI                                  */
+/****************************************************************************/
+uint8_t spi_bb_xfer_byte(int sck, int sdo, int sdi, int mode, int bitOrder, uint8_t data) {
+  uint8_t b = 0x00;
+  uint8_t bitPos;
+
+  for (int i=0; i<8; i++) {
+    // 0 is LSBFIRST, anything else is MSBFIRST.
+    bitPos = (bitOrder == 0) ? i : 7-i;
+
+    // SPI MODE 0
+    if (mode == 0){
+      if (sdo >= 0) digitalWrite(sdo, (data >> bitPos) & 0b1);
+      digitalWrite(sck, HIGH);
+      if (sdi >= 0) b |= (digitalRead(sdi) << bitPos);
+      digitalWrite(sck, LOW);
+    }
+
+    // SPI MODE 1
+    if (mode == 1){
+      digitalWrite(sck, HIGH);
+      if (sdo >= 0) digitalWrite(sdo, (data >> bitPos) & 0b1);
+      digitalWrite(sck, LOW);
+      if (sdi >= 0) b |= (digitalRead(sdi) << bitPos);
+    }
+
+    // SPI MODE 2
+    if (mode == 2){
+      if (sdo >= 0) digitalWrite(sdo, (data >> bitPos) & 0b1);
+      digitalWrite(sck, LOW);
+      if (sdi >= 0) b |= (digitalRead(sdi) << bitPos);
+      digitalWrite(sck, HIGH);
+    }
+
+    // SPI MODE 3
+    if (mode == 3){
+      digitalWrite(sck, LOW);
+      if (sdo >= 0) digitalWrite(sdo, (data >> bitPos) & 0b1);
+      digitalWrite(sck, HIGH);
+      if (sdi >= 0) b |= (digitalRead(sdi) << bitPos);
+    }
+  }
+  return b;
+}
+
+mrb_value
+mrb_spi_bb_xfer(mrb_state* mrb, mrb_value self) {
+  mrb_int sck, sdo, sdi, cs, mode, bitOrder, rxLength;
+  mrb_value txArray;
+  mrb_get_args(mrb, "iiiiiiiA", &sck, &sdo, &sdi, &cs, &mode, &bitOrder, &rxLength, &txArray);
+  if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
+  if ((mode < 0) || (mode > 3)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid SPI mode. Must be in range 0..3");
+  if ((cs >= 0) && (!wiringXValidGPIO(cs))) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI chip select");
+
+  // Reading more than writing, or writing more than reading?
+  mrb_int txLength = RARRAY_LEN(txArray);
+  int length = (rxLength > txLength) ? rxLength : txLength;
+  uint8_t txBuf[length];
+  uint8_t rxBuf[length];
+
+  // Copy bytes from txArray into txBuf.
+  for (int i=0; i<txLength; i++) {
+    mrb_value elem = mrb_ary_ref(mrb, txArray, i);
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each SPI byte must be Integer");
+    txBuf[i] = mrb_integer(elem);
+  }
+  // Extend with 0s if needed.
+  if (length > txLength) {
+    for(int i=txLength; i<length; i++) txBuf[i] = 0;
+  }
+
+  // Pin Setup
+  pinMode(sck, PINMODE_OUTPUT);
+  if ((mode == 0)||(mode == 1)) digitalWrite(sck, LOW);
+  if ((mode == 2)||(mode == 3)) digitalWrite(sck, HIGH);
+  if (sdo >= 0) pinMode(sdo, PINMODE_OUTPUT);
+  if (sdi >= 0) pinMode(sdi, PINMODE_INPUT);
+
+  // Pull select low if needed.
+  if (cs >= 0) {
+    pinMode(cs, PINMODE_OUTPUT);
+    digitalWrite(cs, LOW);
+  }
+
+  // Do the transfer.
+  for (int i=0; i<length; i++) {
+    rxBuf[i] = spi_bb_xfer_byte(sck, sdo, sdi, mode, bitOrder, txBuf[i]);
+  }
+
+  // Leave select high if needed.
+  if (cs >= 0) digitalWrite(cs, HIGH);
+
+  // Convert read bytes to mrb_ary and return.
+  mrb_value rxArray = mrb_ary_new_capa(mrb, rxLength);
+  for (int i=0; i<rxLength; i++) mrb_ary_push(mrb, rxArray, mrb_fixnum_value(rxBuf[i]));
+  return rxArray;
+}
+
+/****************************************************************************/
 /*                               GEM INIT                                   */
 /****************************************************************************/
 void
@@ -934,6 +1033,9 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, topMod, "i2c_bb_search",       mrb_i2c_bb_search,      MRB_ARGS_REQ(2));
   mrb_define_method(mrb, topMod, "i2c_bb_read",         mrb_i2c_bb_read,        MRB_ARGS_REQ(4));
   mrb_define_method(mrb, topMod, "i2c_bb_write",        mrb_i2c_bb_write,       MRB_ARGS_REQ(4));
+
+  // Bit-bang SPI
+  mrb_define_method(mrb, topMod, "spi_bb_xfer",         mrb_spi_bb_xfer,        MRB_ARGS_REQ(8));
 }
 
 void
