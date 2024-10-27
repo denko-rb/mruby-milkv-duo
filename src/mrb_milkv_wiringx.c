@@ -549,6 +549,57 @@ mrbWX_read_ultrasonic(mrb_state* mrb, mrb_value self) {
   return mrb_fixnum_value(round(nanoDiff(&now, &start) / 1000.0));
 }
 
+static mrb_value
+mrbWX_read_pulses_us(mrb_state* mrb, mrb_value self) {
+  mrb_int gpio, reset_us, resetLevel, limit, timeout_ms;
+  mrb_get_args(mrb, "iiiii", &gpio, &reset_us, &resetLevel, &limit, &timeout_ms);
+  uint64_t timeout_ns = timeout_ms * 1000000;
+
+  // State setup
+  uint64_t pulses_ns[limit];
+  uint32_t pulseIndex = 0;
+  int      gpioState;
+  struct timespec start;
+  struct timespec lastPulse;
+  struct timespec now;
+
+  // Perform reset
+  if (reset_us > 0) {
+    pinMode(gpio, PINMODE_OUTPUT);
+    digitalWrite(gpio, resetLevel);
+    microDelay(reset_us);
+  }
+
+  // Initialize timing
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  lastPulse = start;
+  now       = start;
+
+  // Switch to input and read initial state
+  pinMode(gpio, PINMODE_INPUT);
+  gpioState = digitalRead(gpio);
+
+  // Read pulses in nanoseconds
+  while ((nanoDiff(&now, &start) < timeout_ns) && (pulseIndex < limit)) {
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (digitalRead(gpio) != gpioState) {
+      pulses_ns[pulseIndex] = nanoDiff(&now, &lastPulse);
+      lastPulse = now;
+      gpioState = gpioState ^ 0b1;
+      pulseIndex++;
+    }
+  }
+
+  // Return mrb array of pulse as microseconds
+  if (pulseIndex == 0) return mrb_nil_value();
+  mrb_value retArray = mrb_ary_new_capa(mrb, pulseIndex);
+  for(uint32_t i=0; i<pulseIndex; i++){
+    uint32_t pulse_us = round(pulses_ns[i] / 1000.0);
+    mrb_ary_push(mrb, retArray, mrb_fixnum_value(pulse_us));
+  }
+  return retArray;
+}
+
 /*****************************************************************************/
 /*                       BIT BANG 1-WIRE HEPERS                              */
 /*****************************************************************************/
@@ -872,6 +923,7 @@ mrb_mruby_milkv_wiringx_gem_init(mrb_state* mrb) {
 
   // Bit-Bang Pulse Input
   mrb_define_method(mrb, mrbWX, "read_ultrasonic",  mrbWX_read_ultrasonic,  MRB_ARGS_REQ(3));
+  mrb_define_method(mrb, mrbWX, "read_pulses_us",   mrbWX_read_pulses_us,   MRB_ARGS_REQ(3));
 
   // Bit-bang 1-Wire Helpers
   mrb_define_method(mrb, mrbWX, "one_wire_bit_read",  mrbWX_one_wire_bit_read,  MRB_ARGS_REQ(1));
