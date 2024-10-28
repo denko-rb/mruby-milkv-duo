@@ -4,7 +4,7 @@ This mruby gem provides GPIO, ADC, PWM, I2C and SPI functionality for the [Milk-
 
 The interface and feature set aim to match the [lgpio](https://github.com/denko-rb/lgpio) CRuby gem. This gem is primarily meant as a hardware abstraction layer for a future mruby port of [denko](https://github.com/denko-rb/denko).
 
-<img src="images/demo.gif" width="540" height="360", alt="Milk-V mruby GPIO demo">
+<img src="images/demo.gif" width="540" height="360" alt="Milk-V mruby GPIO demo">
 
 ## Features
 
