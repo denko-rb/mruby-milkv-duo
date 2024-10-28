@@ -1,5 +1,7 @@
 # mruby-milkv-duo
 
+![Milk-V mruby GPIO demo](/images/demo.gif)
+
 This mruby gem provides GPIO, ADC, PWM, I2C and SPI functionality for the [Milk-V Duo](https://milkv.io/duo) series of single board computers. It depends on the wiringX C library included in the Milk-V SDK, as well as some Linux `/dev` and `/sys` access.
 
 The interface and feature set aim to match the [lgpio](https://github.com/denko-rb/lgpio) CRuby gem. This gem is primarily meant as a hardware abstraction layer for a future mruby port of [denko](https://github.com/denko-rb/denko). That will eventually be a more user-friendly option, and implement various device drivers.
