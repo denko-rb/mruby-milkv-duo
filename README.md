@@ -48,6 +48,25 @@ The interface and feature set aim to match the [lgpio](https://github.com/denko-
 - Use `duo-pinmux` to set them up BEFORE using them. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
 - Run `mruby pinmux_custom.rb` from the examples folder, to get the pinmux layout used in all examples
 
+## Install Instructions
+
+- Download the Linux image for your board, from the [official repo](https://github.com/milkv-duo/duo-buildroot-sdk/releases).
+- Using [balenaEtcher](https://www.balena.io/etcher) or similar, flash the image to a micro SD card.
+- Insert the SD card into your Duo and connect it to your computer.
+- Download and unzip the mruby binaries for your board, from the [releases section](releases) of this repo.
+- The Milk-V Duo should have set up a new network interface on your computer so you can SSH/SCP into it. The default username is `root` and password is `milkv`.
+- Copy the binaries onto the board:
+  - Linux:
+  ```console
+  scp -O UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
+  ```
+  - Mac:
+  ```console
+  scp UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
+  ```
+- SSH into the board: `ssh root@192.168.42.1`.
+- Try the `mirb` shell, or copy over examples from [this](examples) folder, and try them with `mruby filename.rb`.
+
 ## Build Instructions
 - Unless running Ubuntu, set up a virtual machine with Ubuntu 24.04, then install:
 
@@ -67,13 +86,6 @@ cd mruby
   - Set `MILKV_DUO_VARIANT` to the string that matches your board
   - Uncomment `conf.gem :github => 'denko-rb/mruby-milkv-duo'` (last line), to enable this gem
 
-- Cross-compile mruby with: `rake MRUBY_CONFIG=build_config/milkv_duo.rb`
-- Connect your board (with SD card running the official image), and passthrough to your virtual machine if needed
-- Copy the compiled Milk-V binaries to the SD card, using scp:
-
-```console
-scp -O build/milkv_duo/bin/* root@192.168.42.1:/usr/local/bin
-```
-
-- SSH into the board: `ssh root@192.168.42.1` (default password: milkv)
-- Try the `mirb` shell, or check out the the examples in [this](examples) folder.
+- Cross-compile mruby with: `rake MRUBY_CONFIG=build_config/milkv_duo.rb`.
+- The binaries will be in `build/milv_duo/bin/`, relative to the `mruby` top-level directory.
+- Follow the install instructions above to copy them to the board.
