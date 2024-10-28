@@ -53,19 +53,20 @@ The interface and feature set aim to match the [lgpio](https://github.com/denko-
 - Download the Linux image for your board, from the [official repo](https://github.com/milkv-duo/duo-buildroot-sdk/releases).
 - Using [balenaEtcher](https://www.balena.io/etcher) or similar, flash the image to a micro SD card.
 - Insert the SD card into your Duo and connect it to your computer.
-- Download and unzip the mruby binaries for your board, from the [releases section](releases) of this repo.
+- Download and unzip the mruby binaries for your board, from the [releases section](https://github.com/denko-rb/mruby-milkv-duo/releases) of this repo.
 - The Milk-V Duo should have set up a new network interface on your computer so you can SSH/SCP into it. The default username is `root` and password is `milkv`.
 - Copy the binaries onto the board:
-  - Linux:
+  - On Linux:
   ```console
   scp -O UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
   ```
-  - Mac:
+  - On Mac:
   ```console
   scp UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
   ```
 - SSH into the board: `ssh root@192.168.42.1`.
 - Try the `mirb` shell, or copy over examples from [this](examples) folder, and try them with `mruby filename.rb`.
+- If you have issues with the examples (specifically PWM), make sure to read the [pinmux](#pinmux) section above.
 
 ## Build Instructions
 - Unless running Ubuntu, set up a virtual machine with Ubuntu 24.04, then install:
