@@ -44,9 +44,9 @@ The interface and feature set aim to match the [lgpio](https://github.com/denko-
 
 ### Pinmux
 
-- Some features of the Duo are mulltiplexed onto the same pins
+- Some features of the Duo are multiplexed onto the same pins.
 - Use `duo-pinmux` to set them up BEFORE using them. See [official docs](https://milkv.io/docs/duo/application-development/pinmux) for more info.
-- Run `mruby pinmux_custom.rb` from the examples folder, to get the pinmux layout used in all examples
+- Run `mruby pinmux_custom.rb`, from the examples folder, to get the pinmux layout used in all examples.
 
 ## Install Instructions
 
@@ -54,16 +54,16 @@ The interface and feature set aim to match the [lgpio](https://github.com/denko-
 - Using [balenaEtcher](https://www.balena.io/etcher) or similar, flash the image to a micro SD card.
 - Insert the SD card into your Duo and connect it to your computer.
 - Download and unzip the mruby binaries for your board, from the [releases section](https://github.com/denko-rb/mruby-milkv-duo/releases) of this repo.
-- The Milk-V Duo should have set up a new network interface on your computer so you can SSH/SCP into it. The default username is `root` and password is `milkv`.
+- The Milk-V Duo should have created a network interface on your computer, so you can SSH/SCP into it. The default username is `root` and password is `milkv`.
 - Copy the binaries onto the board:
-  - On Linux:
-  ```console
-  scp -O UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
-  ```
-  - On Mac:
-  ```console
-  scp UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
-  ```
+```console
+# Linux
+scp -O UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
+```
+```console
+# Mac
+scp UNZIPPED_BINARY_FOLDER/* root@192.168.42.1:/usr/local/bin
+```
 - SSH into the board: `ssh root@192.168.42.1`.
 - Try the `mirb` shell, or copy over examples from [this](examples) folder, and try them with `mruby filename.rb`.
 - If you have issues with the examples (specifically PWM), make sure to read the [pinmux](#pinmux) section above.
