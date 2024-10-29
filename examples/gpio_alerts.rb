@@ -5,7 +5,7 @@ include Duo
 PINS = (14..21).to_a
 
 PINS.each do |pin|
-  raise "Errror, pin: #{pin} is not a valid GPIO" unless valid_gpio(pin) == 0
+  raise "Error: pin #{pin} is not a valid GPIO" unless valid_gpio(pin)
   pin_mode(pin, PINMODE_INPUT)
   claim_alert(pin)
 end

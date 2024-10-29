@@ -9,7 +9,7 @@ PIN_B     = 15
 PIN_SW    = 16
 
 [PIN_A, PIN_B, PIN_SW].each do |pin|
-  raise "Errror, pin: #{pin} is not a valid GPIO" unless valid_gpio(pin) == 0
+  raise "Error: pin #{pin} is not a valid GPIO" unless valid_gpio(pin)
   pin_mode(pin, PINMODE_INPUT)
   claim_alert(pin)
 end

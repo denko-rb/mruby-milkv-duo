@@ -5,7 +5,7 @@ TOGGLES = 1_000_000
 
 # LED pin on duo and duo_256M. Change to 0 for duos.
 PIN = 25
-raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0
+raise "Error: pin #{PIN} is not a valid GPIO" unless valid_gpio(PIN)
 pin_mode(PIN, PINMODE_OUTPUT)
 
 t1 = Time.now

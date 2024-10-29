@@ -2,7 +2,7 @@
 include Duo
 
 PIN = 15
-raise "Errror, pin: #{PIN} is not a valid GPIO" unless valid_gpio(PIN) == 0
+raise "Error: pin #{PIN} is not a valid GPIO" unless valid_gpio(PIN)
 pin_mode(PIN, PINMODE_INPUT)
 
 old_state = digital_read(PIN)

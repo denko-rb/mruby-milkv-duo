@@ -72,10 +72,10 @@ mrb_wx_setup(mrb_state* mrb, mrb_value self) {
 
 static mrb_value
 mrb_valid_gpio(mrb_state* mrb, mrb_value self) {
-  mrb_int pin, valid;
+  mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
-  valid = wiringXValidGPIO(pin);
-  return mrb_fixnum_value(valid);
+  int invalid = wiringXValidGPIO(pin);
+  return invalid ? mrb_false_value() : mrb_true_value();
 }
 
 static mrb_value
@@ -990,9 +990,9 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling Duo.setup each script.
   mrb_define_method(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
-  mrb_define_method(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
 
   // Digital I/O
+  mrb_define_method(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
   mrb_define_method(mrb, topMod, "pin_mode",            mrb_pin_mode,           MRB_ARGS_REQ(2));
   mrb_define_method(mrb, topMod, "digital_write",       mrb_digital_write,      MRB_ARGS_REQ(2));
   mrb_define_method(mrb, topMod, "digital_read",        mrb_digital_read,       MRB_ARGS_REQ(1));
