@@ -3,6 +3,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdint.h>
 #include <time.h>
 #include <pthread.h>
@@ -355,6 +356,45 @@ mrb_tx_wave_ook(mrb_state* mrb, mrb_value self) {
   // Disable after
   wiringXPWMEnable(pin, 0);
   return mrb_fixnum_value(length);
+}
+
+/****************************************************************************/
+/*                                   ADC                                    */
+/****************************************************************************/
+#define ADC_PATH "/sys/class/cvi-saradc/cvi-saradc0/device/cv_saradc"
+
+static mrb_value
+mrb_analog_read(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  // Write ADC channel (corresponding to pin) to the ADC path.
+  int fd = open(ADC_PATH, O_RDWR|O_NOCTTY|O_NDELAY);
+  if (fd < 0) mrb_raise(mrb, E_RUNTIME_ERROR, "Could not open SARADC. Call Duo.saradc_initialize first");
+  switch (pin) {
+    case 26: write(fd, "1", 1); break;
+    case 27: write(fd, "2", 1); break;
+    default:
+      close(fd);
+      mrb_raise(mrb, E_ARGUMENT_ERROR, "Invalid GPIO for ADC. Only available on 26 and 27");
+      break;
+  }
+
+  // Read ADC result from path.
+  char buffer[8];
+  int length = 0;
+  int result = 0;
+  lseek(fd, 0, SEEK_SET);
+  length = read(fd, buffer, sizeof(buffer) -1);
+  close(fd);
+
+  // Convert to integer and return.
+	if(length > 0) {
+		result = atoi(buffer);
+	} else {
+	  return mrb_nil_value();
+	}
+	return mrb_fixnum_value(result);
 }
 
 /****************************************************************************/
@@ -1008,6 +1048,9 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, topMod, "pwm_set_period",      mrb_pwm_set_period,     MRB_ARGS_REQ(2));
   mrb_define_method(mrb, topMod, "pwm_set_duty",        mrb_pwm_set_duty,       MRB_ARGS_REQ(2));
   mrb_define_method(mrb, topMod, "tx_wave_ook",         mrb_tx_wave_ook,        MRB_ARGS_REQ(3));
+
+  // SARADC
+  mrb_define_method(mrb, topMod, "analog_read",         mrb_analog_read,        MRB_ARGS_REQ(1));
 
   // I2C
   mrb_define_method(mrb, topMod, "i2c_setup",           mrb_i2c_setup,          MRB_ARGS_REQ(2));

@@ -1,10 +1,9 @@
 include Duo
 
-a1 = Duo::AnalogInput.new(26)
-a2 = Duo::AnalogInput.new(27)
+Duo.saradc_initialize
 
 loop do
-  puts "GPIO26: #{a1.read}"
-  puts "GPIO27: #{a2.read}"
+  puts "GPIO26: #{Duo.analog_read(26)}"
+  puts "GPIO27: #{Duo.analog_read(27)}"
   sleep 1
 end
