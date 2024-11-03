@@ -1028,57 +1028,57 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
 
   // Class Methods
   mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling Duo.setup each script.
-  mrb_define_method(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
+  mrb_define_module_function(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
 
   // Digital I/O
-  mrb_define_method(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, topMod, "pin_mode",            mrb_pin_mode,           MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "digital_write",       mrb_digital_write,      MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "digital_read",        mrb_digital_read,       MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "valid_gpio",          mrb_valid_gpio,         MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "pin_mode",            mrb_pin_mode,           MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "digital_write",       mrb_digital_write,      MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "digital_read",        mrb_digital_read,       MRB_ARGS_REQ(1));
 
   // GPIO Alerts
-  mrb_define_method(mrb, topMod, "claim_alert",         mrb_claim_alert,        MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, topMod, "stop_alert",          mrb_stop_alert,         MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, topMod, "get_alert",           mrb_get_alert,          MRB_ARGS_REQ(0));
+  mrb_define_module_function(mrb, topMod, "claim_alert",         mrb_claim_alert,        MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "stop_alert",          mrb_stop_alert,         MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "get_alert",           mrb_get_alert,          MRB_ARGS_REQ(0));
 
   // PWM
-  mrb_define_method(mrb, topMod, "pwm_enable",          mrb_pwm_enable,         MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "pwm_set_polarity",    mrb_pwm_set_polarity,   MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "pwm_set_period",      mrb_pwm_set_period,     MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "pwm_set_duty",        mrb_pwm_set_duty,       MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "tx_wave_ook",         mrb_tx_wave_ook,        MRB_ARGS_REQ(3));
+  mrb_define_module_function(mrb, topMod, "pwm_enable",          mrb_pwm_enable,         MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "pwm_set_polarity",    mrb_pwm_set_polarity,   MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "pwm_set_period",      mrb_pwm_set_period,     MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "pwm_set_duty",        mrb_pwm_set_duty,       MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "tx_wave_ook",         mrb_tx_wave_ook,        MRB_ARGS_REQ(3));
 
   // SARADC
-  mrb_define_method(mrb, topMod, "analog_read",         mrb_analog_read,        MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "analog_read",         mrb_analog_read,        MRB_ARGS_REQ(1));
 
   // I2C
-  mrb_define_method(mrb, topMod, "i2c_setup",           mrb_i2c_setup,          MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "i2c_write",           mrb_i2c_write,          MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "i2c_read",            mrb_i2c_read,           MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "i2c_setup",           mrb_i2c_setup,          MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "i2c_write",           mrb_i2c_write,          MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "i2c_read",            mrb_i2c_read,           MRB_ARGS_REQ(2));
 
   // SPI
-  mrb_define_method(mrb, topMod, "spi_setup",           mrb_spi_setup,          MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "spi_xfer",            mrb_spi_xfer,           MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, topMod, "spi_ws2812_write",    mrb_spi_ws2812_write,   MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "spi_setup",           mrb_spi_setup,          MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "spi_xfer",            mrb_spi_xfer,           MRB_ARGS_REQ(3));
+  mrb_define_module_function(mrb, topMod, "spi_ws2812_write",    mrb_spi_ws2812_write,   MRB_ARGS_REQ(2));
 
   // Bit-Bang Pulse Input
-  mrb_define_method(mrb, topMod, "read_ultrasonic",     mrb_read_ultrasonic,    MRB_ARGS_REQ(3));
-  mrb_define_method(mrb, topMod, "read_pulses_us",      mrb_read_pulses_us,     MRB_ARGS_REQ(3));
+  mrb_define_module_function(mrb, topMod, "read_ultrasonic",     mrb_read_ultrasonic,    MRB_ARGS_REQ(3));
+  mrb_define_module_function(mrb, topMod, "read_pulses_us",      mrb_read_pulses_us,     MRB_ARGS_REQ(3));
 
   // Bit-bang 1-Wire Helpers
-  mrb_define_method(mrb, topMod, "one_wire_bit_read",   mrb_one_wire_bit_read,  MRB_ARGS_REQ(1));
-  mrb_define_method(mrb, topMod, "one_wire_bit_write",  mrb_one_wire_bit_write, MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "one_wire_reset",      mrb_one_wire_reset,     MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_bit_read",   mrb_one_wire_bit_read,  MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_bit_write",  mrb_one_wire_bit_write, MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "one_wire_reset",      mrb_one_wire_reset,     MRB_ARGS_REQ(1));
 
   // Bit-bang I2C
-  mrb_define_method(mrb, topMod, "i2c_bb_setup",        mrb_i2c_bb_setup,       MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "i2c_bb_search",       mrb_i2c_bb_search,      MRB_ARGS_REQ(2));
-  mrb_define_method(mrb, topMod, "i2c_bb_read",         mrb_i2c_bb_read,        MRB_ARGS_REQ(4));
-  mrb_define_method(mrb, topMod, "i2c_bb_write",        mrb_i2c_bb_write,       MRB_ARGS_REQ(4));
+  mrb_define_module_function(mrb, topMod, "i2c_bb_setup",        mrb_i2c_bb_setup,       MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "i2c_bb_search",       mrb_i2c_bb_search,      MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "i2c_bb_read",         mrb_i2c_bb_read,        MRB_ARGS_REQ(4));
+  mrb_define_module_function(mrb, topMod, "i2c_bb_write",        mrb_i2c_bb_write,       MRB_ARGS_REQ(4));
 
   // Bit-bang SPI
-  mrb_define_method(mrb, topMod, "spi_bb_xfer",         mrb_spi_bb_xfer,        MRB_ARGS_REQ(8));
+  mrb_define_module_function(mrb, topMod, "spi_bb_xfer",         mrb_spi_bb_xfer,        MRB_ARGS_REQ(8));
 }
 
 void

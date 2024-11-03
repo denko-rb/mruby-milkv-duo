@@ -1,13 +1,14 @@
+# Top-level include Duo, to call its class methods directly.
 include Duo
 
 PIN   = 26
 READS = 100_000
 
-Duo.saradc_initialize
+saradc_initialize
 
 t1 = Time.now
 READS.times do
-  Duo.analog_read(PIN)
+  analog_read(PIN)
 end
 t2 = Time.now
 
