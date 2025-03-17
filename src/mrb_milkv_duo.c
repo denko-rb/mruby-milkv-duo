@@ -51,7 +51,7 @@ static void microDelay(uint64_t micros) {
 }
 
 static mrb_value
-mrb_microDelay(mrb_state* mrb, mrb_value self) {
+mrb_micro_delay(mrb_state* mrb, mrb_value self) {
   mrb_int micros;
   mrb_get_args(mrb, "i", &micros);
   microDelay(micros);
@@ -1028,7 +1028,7 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
 
   // Class Methods
   mrb_wx_setup(mrb, mrb_nil_value()); // Save user from calling Duo.setup each script.
-  mrb_define_module_function(mrb, topMod, "micro_delay",         mrb_microDelay,         MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "micro_delay",         mrb_micro_delay,        MRB_ARGS_REQ(1));
   mrb_define_module_function(mrb, topMod, "setup",               mrb_wx_setup,           MRB_ARGS_REQ(0));
 
   // Digital I/O
