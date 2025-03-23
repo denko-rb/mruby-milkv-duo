@@ -14,12 +14,9 @@ module Duo
       end
 
       period ? self.period = period : self.frequency = frequency
-
-      # Default to with 0 duty cycle and normal polarity.
-      self.duty = 0
       self.polarity = :normal
-
       enable
+      self.duty = 0
     end
 
     def polarity=(p=:normal)
