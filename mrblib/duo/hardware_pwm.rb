@@ -43,7 +43,6 @@ module Duo
     end
 
     def period=(p)
-      Duo.pwm_set_duty(pin, 0) unless duty == 0
       Duo.pwm_set_period(pin, p)
       @frequency = nil
       @period = p
