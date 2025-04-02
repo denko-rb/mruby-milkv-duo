@@ -116,6 +116,7 @@ typedef struct
 // Set up a queue for up to 2**16 GPIO reports.
 #define QUEUE_LENGTH UINT16_MAX + 1
 static wxGpioReport_t reportQueue[QUEUE_LENGTH];
+static pthread_mutex_t queueLock;
 static uint16_t qWritePos = 1;
 static uint16_t qReadPos  = 0;
 
@@ -130,7 +131,11 @@ static void queue_report(uint32_t pin, uint32_t level) {
   // Update queue pointers
   qWritePos++;
   // qReadPos is the LAST report read. If passing by 1, increment it too. Lose oldest data first.
-  if (qWritePos - qReadPos == 1) qReadPos++;
+  if (qWritePos - qReadPos == 1) {
+    pthread_mutex_lock(&queueLock);
+    if (qWritePos - qReadPos == 1) qReadPos++;
+    pthread_mutex_unlock(&queueLock);
+  }
 }
 
 // Storage for up to 32 listeners
@@ -147,7 +152,6 @@ static int lastActiveListener = -1;
 
 // Poll in a separate thread roughly every 100 microseconds.
 #define LISTEN_INTERVAL_NS 100000
-static pthread_mutex_t queueLock;
 static pthread_t listenThread;
 static int runListenThread = 0;
 
@@ -161,7 +165,6 @@ static void listen(){
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     // Update all the listeners.
-    pthread_mutex_lock(&queueLock);
     for(int i=0; i<=lastActiveListener; i++) {
       if (listeners[i].active == 1) {
         readState = digitalRead(listeners[i].pin);
@@ -179,7 +182,6 @@ static void listen(){
          listeners[i].changed = 0;
       }
     }
-    pthread_mutex_unlock(&queueLock);
 
     clock_gettime(CLOCK_MONOTONIC, &finish);
 
@@ -195,12 +197,10 @@ static void listen(){
 static void start_listen_thread(mrb_state* mrb) {
   if (runListenThread != 1){
     // Deactive all listeners
-    pthread_mutex_lock(&queueLock);
     for(int i=0; i<LISTENER_COUNT; i++) {
       listeners[i].active = 0;
       listeners[i].pin    = -1;
     }
-    pthread_mutex_unlock(&queueLock);
 
     // Start the thread
     runListenThread = 1;
@@ -218,7 +218,6 @@ mrb_claim_alert(mrb_state* mrb, mrb_value self) {
   start_listen_thread(mrb);
 
   // Check for existing listener on this pin.
-  pthread_mutex_lock(&queueLock);
   int pos = 0;
   while(pos < LISTENER_COUNT) {
     if (listeners[pos].pin == pin) break;
@@ -243,7 +242,6 @@ mrb_claim_alert(mrb_state* mrb, mrb_value self) {
     listeners[pos].changed = 0;
     if (pos > lastActiveListener) lastActiveListener = pos;
   }
-  pthread_mutex_unlock(&queueLock);
 
   return mrb_nil_value();
 }
