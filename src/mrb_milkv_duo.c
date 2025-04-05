@@ -332,7 +332,7 @@ mrb_tx_wave_ook(mrb_state* mrb, mrb_value self) {
   uint64_t nanoPulses[length];
   for (int i=0; i<length; i++) {
     mrb_value elem = mrb_ary_ref(mrb, txArray, i);
-    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "Each I2C byte must be Integer");
+    if (!mrb_integer_p(elem)) mrb_raise(mrb, E_TYPE_ERROR, "OOK pulses must be Integer");
     // Should validate +ve too?
     nanoPulses[i] = mrb_integer(elem) * 1000;
   }
