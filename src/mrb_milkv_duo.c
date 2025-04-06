@@ -443,7 +443,8 @@ mrb_i2c_read(mrb_state* mrb, mrb_value self) {
 
   // Raw I2C read length bytes into C array.
   uint8_t rxBuf[length];
-  read(fd, rxBuf, length);
+  int result = read(fd, rxBuf, length);
+  if (result < 0) return mrb_fixnum_value(result);
 
   // Convert to mrb_ary and return.
   mrb_value rxArray = mrb_ary_new_capa(mrb, length);
