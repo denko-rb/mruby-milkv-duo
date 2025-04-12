@@ -83,16 +83,22 @@ static mrb_value
 mrb_pin_mode(mrb_state* mrb, mrb_value self) {
   mrb_int pin, mode;
   mrb_get_args(mrb, "ii", &pin, &mode);
-  pinMode(pin, mode);
-  return mrb_nil_value();
+  if (pinMode(pin, mode) > -1) {
+    return mrb_fixnum_value(mode);
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "mrb_pin_mode failed");
+  }
 }
 
 static mrb_value
 mrb_digital_write(mrb_state* mrb, mrb_value self) {
   mrb_int pin, state;
   mrb_get_args(mrb, "ii", &pin, &state);
-  digitalWrite(pin, state);
-  return mrb_nil_value();
+  if (digitalWrite(pin, state) > -1) {
+    return mrb_fixnum_value(state);
+  } else {
+    mrb_raise(mrb, E_RUNTIME_ERROR, "mrb_digital_write failed");
+  }
 }
 
 static mrb_value
