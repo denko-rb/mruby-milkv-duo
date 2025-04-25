@@ -9,20 +9,20 @@ module Duo
     raise "No SARADC driver found!" unless driver_path
 
     puts "Loading SARADC driver: #{driver_path}"
-    result = `insmod #{driver_path}`
+    result = Kernel.send(:`, "insmod #{driver_path}")
 
     return true
   end
 
   def self.saradc_driver_loaded
-    result = `lsmod | grep -E "cv180x_saradc|cv181x_saradc"`
+    result = Kernel.send(:`, "lsmod | grep -E \"cv180x_saradc|cv181x_saradc\"")
     result = false if result.empty?
     result
   end
 
   def self.find_saradc_driver
-    result = `find / -name "cv180x_saradc.ko" 2>/dev/null`
-    result = `find / -name "cv181x_saradc.ko" 2>/dev/null` if result.empty?
+    result = Kernel.send(:`, "find / -name \"cv180x_saradc.ko\" 2>/dev/null")
+    result = Kernel.send(:`, "find / -name \"cv181x_saradc.ko\" 2>/dev/null") if result.empty?
     result = nil if result.empty?
     result
   end
