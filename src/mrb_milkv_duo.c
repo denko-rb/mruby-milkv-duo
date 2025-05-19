@@ -969,7 +969,10 @@ mrb_spi_bb_xfer(mrb_state* mrb, mrb_value self) {
   mrb_get_args(mrb, "iiiiiiiA", &sck, &sdo, &sdi, &cs, &mode, &bitOrder, &rxLength, &txArray);
   if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
   if ((mode < 0) || (mode > 3)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid SPI mode. Must be in range 0..3");
-  if ((cs >= 0) && (!wiringXValidGPIO(cs))) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI chip select");
+  if ((sck >= 0) && (wiringXValidGPIO(sck) != 0)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI clock");
+  if ((sdo >= 0) && (wiringXValidGPIO(sdo) != 0)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI output");
+  if ((sdi >= 0) && (wiringXValidGPIO(sdi) != 0)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI input");
+  if ((cs >= 0)  && (wiringXValidGPIO(cs)  != 0)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI chip select");
 
   // Reading more than writing, or writing more than reading?
   mrb_int txLength = RARRAY_LEN(txArray);
