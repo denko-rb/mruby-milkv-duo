@@ -24,7 +24,6 @@ COLORS = [
 POSITIONS = (0..PIXEL_COUNT-1).to_a + (1..PIXEL_COUNT-2).to_a.reverse
 
 pixels = Array.new(PIXEL_COUNT) { [0, 0, 0] }
-spi_handle = spi_setup(SPI_DEV, SPI_BAUD)
 
 loop do
   COLORS.each do |color|

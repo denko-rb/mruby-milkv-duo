@@ -462,22 +462,11 @@ mrb_i2c_read(mrb_state* mrb, mrb_value self) {
 /*                                   SPI                                    */
 /****************************************************************************/
 static mrb_value
-mrb_spi_setup(mrb_state* mrb, mrb_value self) {
-  // Args are Linux SPI dev index, and clock speed.
-  mrb_int index, speed;
-  mrb_get_args(mrb, "ii", &index, &speed);
-
-  // Setup and return the file descriptor to mruby.
-  int fd = wiringXSPISetup(index, speed);
-  return mrb_fixnum_value(fd);
-}
-
-static mrb_value
 mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   // Args are SPI index, array of bytes to write, length of bytes to read.
-  mrb_int index, rxLength;
+  mrb_int index, rxLength, speed;
   mrb_value txArray;
-  mrb_get_args(mrb, "iAi", &index, &txArray, &rxLength);
+  mrb_get_args(mrb, "iiAi", &index, &speed, &txArray, &rxLength);
   if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
 
   // Reading more than writing, or writing more than reading?
@@ -497,7 +486,9 @@ mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   }
 
   // Do the transfer.
+  int fd = wiringXSPISetup(index, speed);
   wiringXSPIDataRW(index, rwBuf, length);
+  close(fd);
 
   // Convert read bytes to mrb_ary and return.
   mrb_value rxArray = mrb_ary_new_capa(mrb, rxLength);
@@ -542,7 +533,11 @@ mrb_spi_ws2812_write(mrb_state* mrb, mrb_value self){
     txBuf[i+zeroesBefore] = temp;
   }
 
+  // Do the transfer.
+  int fd = wiringXSPISetup(index, 2400000);
   int result = wiringXSPIDataRW(index, (uint8_t *)txBuf, sizeof(txBuf));
+  close(fd);
+
   return mrb_fixnum_value(result);
 }
 
@@ -966,7 +961,7 @@ mrb_value
 mrb_spi_bb_xfer(mrb_state* mrb, mrb_value self) {
   mrb_int sck, sdo, sdi, cs, mode, bitOrder, rxLength;
   mrb_value txArray;
-  mrb_get_args(mrb, "iiiiiiiA", &sck, &sdo, &sdi, &cs, &mode, &bitOrder, &rxLength, &txArray);
+  mrb_get_args(mrb, "iiiiiiAi", &sck, &sdo, &sdi, &cs, &mode, &bitOrder, &txArray, &rxLength);
   if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
   if ((mode < 0) || (mode > 3)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid SPI mode. Must be in range 0..3");
   if ((sck >= 0) && (wiringXValidGPIO(sck) != 0)) mrb_raise(mrb, E_TYPE_ERROR, "Invalid GPIO given for SPI clock");
@@ -1066,8 +1061,7 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   mrb_define_module_function(mrb, topMod, "i2c_read",            mrb_i2c_read,           MRB_ARGS_REQ(2));
 
   // SPI
-  mrb_define_module_function(mrb, topMod, "spi_setup",           mrb_spi_setup,          MRB_ARGS_REQ(2));
-  mrb_define_module_function(mrb, topMod, "spi_xfer",            mrb_spi_xfer,           MRB_ARGS_REQ(3));
+  mrb_define_module_function(mrb, topMod, "spi_xfer",            mrb_spi_xfer,           MRB_ARGS_REQ(4));
   mrb_define_module_function(mrb, topMod, "spi_ws2812_write",    mrb_spi_ws2812_write,   MRB_ARGS_REQ(2));
 
   // Bit-Bang Pulse Input
