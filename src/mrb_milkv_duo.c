@@ -461,12 +461,31 @@ mrb_i2c_read(mrb_state* mrb, mrb_value self) {
 /****************************************************************************/
 /*                                   SPI                                    */
 /****************************************************************************/
+// WiringX only supports spidev0 on Milk-V Duo. Store its speed and any open FD.
+int spi0_fd    = -1;
+int spi0_speed = -1;
+
+static void
+duo_wiringX_spi_setup(int index, int speed) {
+  // Don't do anything if speed hasn't changed.
+  if (speed != spi0_speed) {
+    // Close any open FD.
+    if (spi0_fd > 0) close(spi0_fd);
+
+    // Open at the new speed and save it.
+    // First arg is which channel on the spidev. Always give 0 since we don't care.
+    spi0_fd    = wiringXSPISetup(0, speed);
+    spi0_speed = speed;
+  }
+}
+
 static mrb_value
 mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   // Args are SPI index, array of bytes to write, length of bytes to read.
   mrb_int index, rxLength, speed;
   mrb_value txArray;
   mrb_get_args(mrb, "iiAi", &index, &speed, &txArray, &rxLength);
+  if (index != 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "Milk-V Duo only supports spidev0");
   if (!mrb_array_p(txArray)) mrb_raise(mrb, E_TYPE_ERROR, "SPI bytes must be given as Array");
 
   // Reading more than writing, or writing more than reading?
@@ -486,9 +505,8 @@ mrb_spi_xfer(mrb_state* mrb, mrb_value self) {
   }
 
   // Do the transfer.
-  int fd = wiringXSPISetup(index, speed);
+  duo_wiringX_spi_setup(index, speed);
   wiringXSPIDataRW(index, rwBuf, length);
-  close(fd);
 
   // Convert read bytes to mrb_ary and return.
   mrb_value rxArray = mrb_ary_new_capa(mrb, rxLength);
@@ -502,6 +520,7 @@ mrb_spi_ws2812_write(mrb_state* mrb, mrb_value self){
   mrb_int index;
   mrb_value pixelArray;
   mrb_get_args(mrb, "iA", &index, &pixelArray);
+  if (index != 0) mrb_raise(mrb, E_ARGUMENT_ERROR, "Milk-V Duo only supports spidev0");
   if (!mrb_array_p(pixelArray)) mrb_raise(mrb, E_TYPE_ERROR, "WS2812 bytes must be given as Array");
 
   int count = RARRAY_LEN(pixelArray);
@@ -534,9 +553,8 @@ mrb_spi_ws2812_write(mrb_state* mrb, mrb_value self){
   }
 
   // Do the transfer.
-  int fd = wiringXSPISetup(index, 2400000);
+  duo_wiringX_spi_setup(index, 2400000);
   int result = wiringXSPIDataRW(index, (uint8_t *)txBuf, sizeof(txBuf));
-  close(fd);
 
   return mrb_fixnum_value(result);
 }

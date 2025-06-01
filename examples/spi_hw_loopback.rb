@@ -1,6 +1,6 @@
 include Duo
 
-SPI_DEV  = 2
+SPI_DEV  = 0
 SPI_BAUD = 1_000_000
 
 tx_bytes = [0, 1, 2, 3, 4, 5, 6, 7]

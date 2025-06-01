@@ -6,7 +6,7 @@
 include Duo
 
 # SPI config
-SPI_DEV  = 2
+SPI_DEV  = 0
 SPI_BAUD = 2_400_000
 
 PIXEL_COUNT = 8
