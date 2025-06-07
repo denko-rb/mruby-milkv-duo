@@ -13,7 +13,7 @@ SPEED_OF_SOUND  = 343.0
 
 loop do
   # Arguments in order are:
-  #   chip handle, trigger pin, echo pin, trigger time (us)
+  #   trigger pin, echo pin, trigger time (us)
   #
   # HC-SR04 uses 10 microseconds for trigger. Some others use 20us.
   #
