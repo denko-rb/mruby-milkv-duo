@@ -3,7 +3,7 @@ include Duo
 FREQUENCY = 38_000
 
 # NEC Raw-Data=0xF708FB04. LSBFIRST, so the binary for each hex digit below is backward.
-CODE =  [ 9000, 500,                                  # Start bit
+CODE =  [ 9000, 4500,                                  # Start bit
           560, 560, 560, 560, 560, 1690, 560, 560,    # 0010 0x4 command
           560, 560, 560, 560, 560, 560, 560, 560,     # 0000 0x0 command
           560, 1690, 560, 1690, 560,560, 560, 1690,   # 1101 0xB command inverted
