@@ -661,57 +661,6 @@ mrb_read_pulses_us(mrb_state* mrb, mrb_value self) {
 /*                       BIT BANG 1-WIRE HEPERS                              */
 /*****************************************************************************/
 static mrb_value
-mrb_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
-  mrb_int pin;
-  mrb_get_args(mrb, "i", &pin);
-
-  uint8_t bit = 1;
-  struct timespec start;
-  struct timespec now;
-
-  // Start the read slot.
-  pinMode(pin, PINMODE_OUTPUT);
-  digitalWrite(pin, 0);
-  microDelay(1);
-  pinMode(pin, PINMODE_INPUT);
-
-  // Poll for 60us to see if pin goes low.
-  clock_gettime(CLOCK_MONOTONIC, &start);
-  now = start;
-  while(nanoDiff(&now, &start) < 60000){
-    if (digitalRead(pin) == 0) bit = 0;
-    clock_gettime(CLOCK_MONOTONIC, &now);
-  }
-  return mrb_fixnum_value(bit);
-}
-
-static mrb_value
-mrb_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
-  mrb_int pin, bit;
-  mrb_get_args(mrb, "ii", &pin, &bit);
-
-  // Write slot starts by going low for at least 1us.
-  pinMode(pin, PINMODE_OUTPUT);
-  digitalWrite(pin, 0);
-  microDelay(1);
-
-  // If 0, keep it low for the rest of the 60us write slot, then release.
-  if (bit == 0) {
-    microDelay(59);
-    digitalWrite(pin, 1);
-  // If 1, release first, then wait the rest of the 60us slot.
-  } else {
-    digitalWrite(pin, 1);
-    microDelay(59);
-  }
-  pinMode(pin, PINMODE_INPUT);
-
-  // Minimum 1us recovery time after each slot.
-  microDelay(1);
-  return mrb_nil_value();
-}
-
-static mrb_value
 mrb_one_wire_reset(mrb_state* mrb, mrb_value self) {
   mrb_int pin;
   mrb_get_args(mrb, "i", &pin);
@@ -735,6 +684,91 @@ mrb_one_wire_reset(mrb_state* mrb, mrb_value self) {
   }
 
   return mrb_fixnum_value(presence);
+}
+
+static int
+c_one_wire_bit_read(int pin) {
+  uint8_t bit = 1;
+  struct timespec start;
+  struct timespec now;
+
+  // Start the read slot.
+  pinMode(pin, PINMODE_OUTPUT);
+  digitalWrite(pin, 0);
+  microDelay(1);
+  pinMode(pin, PINMODE_INPUT);
+
+  // Poll for 60us to see if pin goes low.
+  clock_gettime(CLOCK_MONOTONIC, &start);
+  now = start;
+  while(nanoDiff(&now, &start) < 60000){
+    if (digitalRead(pin) == 0) bit = 0;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+  }
+  return bit;
+}
+
+static mrb_value
+mrb_one_wire_bit_read(mrb_state* mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+  int bit = c_one_wire_bit_read(pin);
+  return mrb_fixnum_value(bit);
+}
+
+static mrb_value
+mrb_one_wire_byte_read(mrb_state *mrb, mrb_value self) {
+  mrb_int pin;
+  mrb_get_args(mrb, "i", &pin);
+
+  uint8_t b = 0;
+  for(int i=0; i<8; i++) {
+    b |= (c_one_wire_bit_read(pin) & 0b1) << i;
+  }
+  return mrb_fixnum_value(b);
+}
+
+static void
+c_one_wire_bit_write(int pin, int bit) {
+  // Write slot starts by going low for at least 1us.
+  pinMode(pin, PINMODE_OUTPUT);
+  digitalWrite(pin, 0);
+  microDelay(1);
+
+  // If 0, keep it low for the rest of the 60us write slot, then release.
+  if (bit == 0) {
+    microDelay(59);
+    digitalWrite(pin, 1);
+  // If 1, release first, then wait the rest of the 60us slot.
+  } else {
+    digitalWrite(pin, 1);
+    microDelay(59);
+  }
+  pinMode(pin, PINMODE_INPUT);
+
+  // Minimum 1us recovery time after each slot.
+  microDelay(1);
+}
+
+static mrb_value
+mrb_one_wire_bit_write(mrb_state* mrb, mrb_value self) {
+  mrb_int pin, bit;
+  mrb_get_args(mrb, "ii", &pin, &bit);
+  c_one_wire_bit_write(pin, bit);
+  return mrb_nil_value();
+}
+
+static mrb_value
+mrb_one_wire_byte_write(mrb_state *mrb, mrb_value self) {
+  mrb_int pin, b;
+  mrb_get_args(mrb, "ii", &pin, &b);
+
+  int bit;
+  for(int i=0; i<8; i++) {
+    bit = (b >> i) & 0b1;
+    c_one_wire_bit_write(pin, bit);
+  }
+  return mrb_nil_value();
 }
 
 /****************************************************************************/
@@ -1087,9 +1121,11 @@ mrb_mruby_milkv_duo_gem_init(mrb_state* mrb) {
   mrb_define_module_function(mrb, topMod, "read_pulses_us",      mrb_read_pulses_us,     MRB_ARGS_REQ(3));
 
   // Bit-bang 1-Wire Helpers
-  mrb_define_module_function(mrb, topMod, "one_wire_bit_read",   mrb_one_wire_bit_read,  MRB_ARGS_REQ(1));
-  mrb_define_module_function(mrb, topMod, "one_wire_bit_write",  mrb_one_wire_bit_write, MRB_ARGS_REQ(2));
-  mrb_define_module_function(mrb, topMod, "one_wire_reset",      mrb_one_wire_reset,     MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_reset",      mrb_one_wire_reset,      MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_bit_read",   mrb_one_wire_bit_read,   MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_byte_read",  mrb_one_wire_byte_read,  MRB_ARGS_REQ(1));
+  mrb_define_module_function(mrb, topMod, "one_wire_bit_write",  mrb_one_wire_bit_write,  MRB_ARGS_REQ(2));
+  mrb_define_module_function(mrb, topMod, "one_wire_byte_write", mrb_one_wire_byte_write, MRB_ARGS_REQ(2));
 
   // Bit-bang I2C
   mrb_define_module_function(mrb, topMod, "i2c_bb_setup",        mrb_i2c_bb_setup,       MRB_ARGS_REQ(2));
