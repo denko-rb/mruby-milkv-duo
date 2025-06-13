@@ -1,4 +1,4 @@
-require_relative "mrblib/version"
+require_relative "mrblib/duo/version"
 
 MRuby::Gem::Specification.new('mruby-milkv-duo') do |spec|
   spec.license = 'MIT'
